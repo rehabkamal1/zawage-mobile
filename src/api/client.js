@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE_URL = 'https://al-khattaba.com/api';
+export const API_BASE_URL = 'https://mynosfi.com/api';
 const TOKEN_KEY = '@nosfy_token';
 const USER_KEY = '@nosfy_user';
 

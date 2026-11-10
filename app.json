@@ -29,7 +29,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiUrl": "https://al-khattaba.com/api",
+      "apiUrl": "https://mynosfi.com/api",
       "eas": {
         "projectId": "9aef43e4-99a6-4726-bd70-eab93d6337c9"
       }
