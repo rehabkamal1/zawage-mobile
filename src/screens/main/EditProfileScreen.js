@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -22,10 +23,15 @@ export default function EditProfileScreen({ navigation }) {
 
   const [nickname, setNickname] = useState(profile.nickname || '');
   const [phone, setPhone] = useState(user?.phone || profile.phone || '');
+  const [maritalStatus, setMaritalStatus] = useState(profile.marital_status || '');
   const [governorate, setGovernorate] = useState(profile.governorate || '');
   const [area, setArea] = useState(profile.area || '');
   const [education, setEducation] = useState(profile.education || '');
   const [job, setJob] = useState(profile.job || '');
+  const [height, setHeight] = useState(profile.height ? String(profile.height) : '');
+  const [weight, setWeight] = useState(profile.weight ? String(profile.weight) : '');
+  const [skinTone, setSkinTone] = useState(profile.skin_tone || '');
+  const [prayer, setPrayer] = useState(profile.prayer || '');
   const [bio, setBio] = useState(profile.bio || '');
   const [partnerSpecs, setPartnerSpecs] = useState(profile.partner_specs || '');
   const [saving, setSaving] = useState(false);
@@ -36,10 +42,15 @@ export default function EditProfileScreen({ navigation }) {
       const payload = {
         nickname: nickname.trim(),
         phone: phone.trim(),
+        marital_status: maritalStatus.trim(),
         governorate: governorate.trim(),
         area: area.trim(),
         education: education.trim(),
         job: job.trim(),
+        height: height.trim() ? parseInt(height.trim(), 10) : null,
+        weight: weight.trim() ? parseInt(weight.trim(), 10) : null,
+        skin_tone: skinTone.trim(),
+        prayer: prayer.trim(),
         bio: bio.trim(),
         partner_specs: partnerSpecs.trim(),
       };
@@ -48,9 +59,7 @@ export default function EditProfileScreen({ navigation }) {
       if (res.user) {
         updateUserProfile(res.user);
       }
-      Alert.alert('تم الحفظ', 'تم تحديث بيانات الاستمارة بنجاح!', [
-        { text: 'حسناً', onPress: () => navigation.goBack() },
-      ]);
+      Alert.alert('تم الحفظ 🎉', 'تم تحديث بيانات استمارتك بنجاح!');
     } catch (e) {
       Alert.alert('خطأ', e.message || 'تعذر حفظ البيانات');
     } finally {
@@ -58,7 +67,7 @@ export default function EditProfileScreen({ navigation }) {
     }
   };
 
-  const InputField = ({ label, value, onChangeText, placeholder, multiline }) => (
+  const InputField = ({ label, value, onChangeText, placeholder, multiline, keyboardType }) => (
     <View style={styles.inputGroup}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
@@ -66,10 +75,11 @@ export default function EditProfileScreen({ navigation }) {
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={COLORS.textLight}
+        placeholderTextColor="#8B94B7"
         textAlign="right"
         multiline={multiline}
         numberOfLines={multiline ? 4 : 1}
+        keyboardType={keyboardType || 'default'}
       />
     </View>
   );
@@ -78,41 +88,33 @@ export default function EditProfileScreen({ navigation }) {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Top Bar */}
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          style={[styles.saveTopBtn, saving && styles.btnDisabled]}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.saveTopBtnText}>حفظ</Text>
-          )}
-        </TouchableOpacity>
-
-        <Text style={styles.topBarTitle}>تعديل الاستمارة</Text>
-
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-forward" size={22} color={COLORS.secondary} />
-        </TouchableOpacity>
+      {/* Top Header */}
+      <View style={styles.topHeader}>
+        <Text style={styles.topBarTitle}>استمارة الزواج الشرعي</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Basic Info */}
         <View style={styles.card}>
-          <Text style={styles.cardSectionTitle}>البيانات العامة</Text>
+          <Text style={styles.cardSectionTitle}>البيانات العامة والشخصية</Text>
           <InputField
-            label="الاسم المستعار أو الشهرة"
+            label="الاسم أو اللقب المستعار"
             value={nickname}
             onChangeText={setNickname}
-            placeholder="مثال: أم محمد أو أبو أحمد"
+            placeholder="مثال: سارة أو أحمد"
           />
           <InputField
-            label="رقم الهاتف للتواصل"
+            label="الحالة الاجتماعية"
+            value={maritalStatus}
+            onChangeText={setMaritalStatus}
+            placeholder="مثال: آنسة، أعزب، مطلق، مطلقة"
+          />
+          <InputField
+            label="رقم الهاتف / واتساب للتواصل"
             value={phone}
             onChangeText={setPhone}
             placeholder="010XXXXXXXX"
+            keyboardType="phone-pad"
           />
           <InputField
             label="المحافظة"
@@ -121,57 +123,104 @@ export default function EditProfileScreen({ navigation }) {
             placeholder="مثال: القاهرة"
           />
           <InputField
-            label="المنطقة أو الحي"
+            label="المدينة أو المنطقة"
             value={area}
             onChangeText={setArea}
             placeholder="مثال: مدينة نصر"
           />
         </View>
 
+        {/* Education & Physical Specs */}
         <View style={styles.card}>
-          <Text style={styles.cardSectionTitle}>التعليم والعمل</Text>
+          <Text style={styles.cardSectionTitle}>التعليم والمواصفات البدنية</Text>
           <InputField
             label="المؤهل الدراسي"
             value={education}
             onChangeText={setEducation}
-            placeholder="مثال: بكالوريوس تجارة"
+            placeholder="مثال: مؤهل عالي - بكالوريوس تجارة"
           />
           <InputField
-            label="الوظيفة الحالية"
+            label="الوظيفة أو مجال العمل"
             value={job}
             onChangeText={setJob}
-            placeholder="مثال: محاسب قانوني"
+            placeholder="مثال: مهندس أو معلمة"
+          />
+          <View style={styles.rowInputs}>
+            <View style={{ flex: 1 }}>
+              <InputField
+                label="الوزن (كجم)"
+                value={weight}
+                onChangeText={setWeight}
+                placeholder="مثال: 65"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={{ width: 12 }} />
+            <View style={{ flex: 1 }}>
+              <InputField
+                label="الطول (سم)"
+                value={height}
+                onChangeText={setHeight}
+                placeholder="مثال: 165"
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+          <InputField
+            label="لون البشرة"
+            value={skinTone}
+            onChangeText={setSkinTone}
+            placeholder="مثال: قمحية، بيضاء، خمرية"
+          />
+          <InputField
+            label="الالتزام بالصلاة والفرائض"
+            value={prayer}
+            onChangeText={setPrayer}
+            placeholder="مثال: ملتزم، الحمد لله في وقتها"
           />
         </View>
 
+        {/* Bio & Partner Specs */}
         <View style={styles.card}>
-          <Text style={styles.cardSectionTitle}>نبذة ومواصفات الشريك</Text>
+          <Text style={styles.cardSectionTitle}>نبذة ومواصفات الشريك المطلوب</Text>
           <InputField
             label="نبذة عن شخصيتك وطباعك"
             value={bio}
             onChangeText={setBio}
-            placeholder="اكتب نبذة مختصرة عن نفسك واهتماماتك..."
+            placeholder="اكتب نبذة مختصرة عن نفسك واهتماماتك وقيمك..."
             multiline
           />
           <InputField
             label="المواصفات المطلوبة في شريك الحياة"
             value={partnerSpecs}
             onChangeText={setPartnerSpecs}
-            placeholder="اكتب مواصفاتك للشريك المطلوب..."
+            placeholder="اكتب ما تتمنى وجوده في الشريك ديناً وخلقاً..."
             multiline
           />
         </View>
 
+        {/* Big Save Button */}
         <TouchableOpacity
-          style={[styles.bigSaveBtn, saving && styles.btnDisabled]}
+          style={styles.saveBtnWrapper}
           onPress={handleSave}
           disabled={saving}
+          activeOpacity={0.88}
         >
-          {saving ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.bigSaveBtnText}>حفظ وتحديث الاستمارة</Text>
-          )}
+          <LinearGradient
+            colors={['#E91E63', '#FF85A2']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.saveGradientBtn}
+          >
+            {saving ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                <Text style={styles.saveGradientBtnText}>حفظ وتحديث الاستمارة</Text>
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -181,102 +230,87 @@ export default function EditProfileScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F8F9FE',
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  topHeader: {
     backgroundColor: '#FFFFFF',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F1F4F9',
   },
   topBarTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: COLORS.secondary,
-  },
-  iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveTopBtn: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 12,
-  },
-  saveTopBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  btnDisabled: {
-    opacity: 0.65,
+    fontSize: 17.5,
+    fontWeight: '900',
+    color: '#2D1B4D',
   },
   scrollContent: {
     padding: 16,
+    paddingBottom: 40,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 18,
     marginBottom: 16,
-    ...SHADOWS.small,
+    borderWidth: 1,
+    borderColor: '#F1F4F9',
+    ...SHADOWS.card,
   },
   cardSectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: COLORS.secondary,
+    fontSize: 15.5,
+    fontWeight: '900',
+    color: '#2D1B4D',
     textAlign: 'right',
     marginBottom: 14,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F8FAFC',
-    paddingBottom: 8,
   },
   inputGroup: {
     marginBottom: 14,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 6,
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#2D1B4D',
     textAlign: 'right',
+    marginBottom: 6,
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F9FE',
     borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    height: 46,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: COLORS.text,
+    borderColor: '#E8ECF4',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#2D1B4D',
   },
   multilineInput: {
     height: 90,
     textAlignVertical: 'top',
-    paddingTop: 10,
   },
-  bigSaveBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 16,
-    height: 52,
+  rowInputs: {
+    flexDirection: 'row-reverse',
+  },
+  saveBtnWrapper: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginTop: 8,
+    ...SHADOWS.glow,
+  },
+  saveGradientBtn: {
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 30,
-    ...SHADOWS.small,
+    paddingVertical: 15,
   },
-  bigSaveBtnText: {
+  saveGradientBtnText: {
+    fontSize: 15.5,
+    fontWeight: '900',
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
   },
 });

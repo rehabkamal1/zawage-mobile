@@ -2,210 +2,232 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  Alert,
   SafeAreaView,
   StatusBar,
+  Linking,
+  Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/client';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function MatchDetailScreen({ route, navigation }) {
-  const { partner } = route.params || {};
-  const profile = partner?.profile || {};
-  const isFemale = partner?.gender === 'female';
+  const { partner: initialPartner, currentUser } = route.params || {};
+  const [partner, setPartner] = useState(initialPartner || {});
+  const [unlocking, setUnlocking] = useState(false);
 
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [loadingContact, setLoadingContact] = useState(false);
+  const profile = partner.profile || {};
+  const isMale = currentUser?.gender === 'male';
 
   const calculateAge = (dob) => {
-    if (!dob) return '-';
-    const diff = Date.now() - new Date(dob).getTime();
-    const ageDate = new Date(diff);
-    return Math.abs(ageDate.getUTCFullYear() - 1970);
+    if (!dob) return null;
+    const birthDate = new Date(dob);
+    if (isNaN(birthDate.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
   };
 
-  const handleToggleFavorite = async () => {
-    try {
-      await api.toggleFavorite(partner.id);
-      setIsFavorite(!isFavorite);
-    } catch (_) {}
+  const age = calculateAge(profile.dob);
+  const score = partner.match_percentage ?? null;
+
+  const handleWhatsApp = () => {
+    const phone = partner.phone || profile.guardian_phone;
+    if (!phone) {
+      Alert.alert('تنبيه', 'رقم الهاتف غير متاح حالياً.');
+      return;
+    }
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const fullPhone = cleanPhone.startsWith('0') ? `2${cleanPhone}` : cleanPhone;
+    const partnerName = profile.nickname || partner.name;
+    const msg = encodeURIComponent(`السلام عليكم، بخصوص استمارة العروس (${partnerName}) في تطبيق نصفي الآخر وأريد التواصل معك.`);
+    Linking.openURL(`https://wa.me/${fullPhone}?text=${msg}`).catch(() => {
+      Alert.alert('خطأ', 'تعذر فتح تطبيق واتساب على هاتفك.');
+    });
   };
 
-  const handleRequestContact = () => {
+  const handleUnlock = async () => {
     Alert.alert(
-      'طلب رقم التواصل',
-      isFemale
-        ? `هل تود طلب بيانات التواصل مع ولي أمر [${profile.nickname || partner.name}]؟`
-        : `هل تود طلب رقم التواصل مع [${profile.nickname || partner.name}]؟`,
+      'فك قفل بيانات التواصل',
+      `هل تود فك قفل استمارة (${profile.nickname || partner.name}) للتواصل مع ولي الأمر عبر واتساب؟\nسيتم استهلاك 1 استمارة من رصيدك.`,
       [
         { text: 'إلغاء', style: 'cancel' },
         {
-          text: 'نعم، إرسال الطلب',
-          onPress: () => {
-            Alert.alert('تم استلام طلبك! 🎉', 'سيتم إشعار الإدارة وولي الأمر للتواصل وفق الضوابط الشرعية.');
-          },
-        },
-      ]
-    );
-  };
-
-  const handleReport = () => {
-    Alert.alert(
-      'إبلاغ عن الاستمارة',
-      'هل ترغب في تقديم بلاغ ضد هذه الاستمارة في حال وجود بيانات غير صحيحة أو مخالفة؟',
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'نعم، إبلاغ',
-          style: 'destructive',
+          text: 'تأكيد وفك القفل',
           onPress: async () => {
+            setUnlocking(true);
             try {
-              await api.sendReport(partner.id, 'بيانات غير صحيحة / مخالفة');
-              Alert.alert('شكراً لتعاونك', 'تم تسجيل البلاغ وستتم مراجعته من قِبل إدارة المنصة فوراً.');
-            } catch (e) {
-              Alert.alert('خطأ', e.message || 'تعذر إرسال البلاغ');
+              const res = await api.unlockContact(partner.id);
+              Alert.alert('تهانينا 🎉', res.message || 'تم فك القفل بنجاح، يمكنك الآن التواصل عبر واتساب.');
+              setPartner(prev => ({ ...prev, is_unlocked: true, phone: res.phone || prev.phone }));
+            } catch (err) {
+              const msg = err.message || 'تعذر فك القفل';
+              if (err.data?.requires_subscription || err.data?.limit_reached) {
+                Alert.alert(
+                  'انتهى الرصيد ⚠️',
+                  msg,
+                  [
+                    { text: 'إلغاء', style: 'cancel' },
+                    { text: 'الاشتراك في باقة الآن 🚀', onPress: () => navigation.navigate('SubscriptionsTab') }
+                  ]
+                );
+              } else {
+                Alert.alert('تنبيه', msg);
+              }
+            } finally {
+              setUnlocking(false);
             }
-          },
-        },
+          }
+        }
       ]
     );
   };
 
-  const SpecItem = ({ label, value, icon }) => (
-    <View style={styles.specItem}>
-      <Text style={styles.specValue}>{value || '-'}</Text>
-      <View style={styles.specLabelRow}>
-        <Text style={styles.specLabel}>{label}</Text>
-        {icon && <Ionicons name={icon} size={16} color={COLORS.primary} style={{ marginLeft: 6 }} />}
-      </View>
-    </View>
-  );
+  const profileFields = [
+    { label: 'المحافظة', value: profile.governorate || 'غير محدد' },
+    { label: 'المدينة / المركز', value: profile.area || 'غير محدد' },
+    { label: 'الحالة الاجتماعية', value: profile.marital_status || 'غير محدد' },
+    { label: 'السن', value: age ? `${age} سنة` : 'غير محدد' },
+    { label: 'الوظيفة', value: profile.job || 'غير محدد' },
+    { label: 'المؤهل الدراسي', value: profile.education || 'غير محدد' },
+    { label: 'الطول والوزن', value: profile.height ? `${profile.height} سم • ${profile.weight || ''} كجم` : 'غير محدد' },
+    { label: 'لون البشرة', value: profile.skin_tone || 'غير محدد' },
+    { label: 'الالتزام بالصلاة', value: profile.prayer || 'غير محدد' },
+    { label: partner.gender === 'female' ? 'الحجاب' : 'التدخين', value: (partner.gender === 'female' ? profile.hijab : profile.smoking) || 'غير محدد' },
+    { label: 'الإنجاب / الأطفال', value: profile.has_children ? `لديه أطفال (${profile.children_count || 1})` : 'لا يوجد أطفال' },
+    { label: 'الانتقال لمحافظة أخرى', value: profile.move_other_gov || 'حسب الاتفاق' },
+  ];
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Top Bar */}
-      <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconBtn} onPress={handleReport}>
-          <Ionicons name="flag-outline" size={20} color={COLORS.danger} />
+      {/* Top Header */}
+      <View style={styles.topHeader}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="chevron-forward" size={24} color="#2D1B4D" />
         </TouchableOpacity>
-
-        <Text style={styles.topBarTitle}>تفاصيل الاستمارة</Text>
-
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-forward" size={22} color={COLORS.secondary} />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>تفاصيل الاستمارة</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Profile Header Banner */}
-        <View style={styles.bannerCard}>
-          <View style={[styles.avatarBig, isFemale ? styles.femaleAvatar : styles.maleAvatar]}>
-            <Ionicons name={isFemale ? 'woman' : 'man'} size={44} color="#FFFFFF" />
+        {/* Profile Card Center Avatar & Header (Matches Web Modal) */}
+        <View style={styles.profileHeaderCard}>
+          <View style={styles.avatarCircle}>
+            <Ionicons name="heart" size={44} color="#E91E63" />
           </View>
-
-          <Text style={styles.profileName}>{profile.nickname || partner?.name}</Text>
-          <Text style={styles.profileId}>كود الاستمارة: #{partner?.id}</Text>
-
-          <View style={styles.quickChips}>
-            <View style={styles.quickChip}>
-              <Ionicons name="location" size={13} color={COLORS.primary} />
-              <Text style={styles.quickChipText}>{profile.governorate || 'مصر'}</Text>
-            </View>
-            <View style={styles.quickChip}>
-              <Ionicons name="calendar" size={13} color={COLORS.primary} />
-              <Text style={styles.quickChipText}>{calculateAge(profile.dob)} سنة</Text>
-            </View>
-            <View style={styles.quickChip}>
-              <Ionicons name="ribbon" size={13} color={COLORS.primary} />
-              <Text style={styles.quickChipText}>{profile.marital_status || 'أعزب'}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Bio Quote */}
-        {profile.bio ? (
-          <View style={styles.bioCard}>
-            <Text style={styles.sectionTitle}>نبذة شخصية</Text>
-            <Text style={styles.bioText}>"{profile.bio}"</Text>
-          </View>
-        ) : null}
-
-        {/* Personal Specs Section */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>المواصفات الشخصية</Text>
-          <SpecItem label="العمر" value={`${calculateAge(profile.dob)} سنة`} icon="calendar-outline" />
-          <SpecItem label="الطول" value={profile.height ? `${profile.height} سم` : '-'} icon="resize-outline" />
-          <SpecItem label="الوزن" value={profile.weight ? `${profile.weight} كجم` : '-'} icon="barbell-outline" />
-          <SpecItem label="لون البشرة" value={profile.skin_tone} icon="color-palette-outline" />
-          <SpecItem label="الحالة الاجتماعية" value={profile.marital_status} icon="heart-outline" />
-          <SpecItem label="المحافظة والمنطقة" value={`${profile.governorate || ''} ${profile.area ? `- ${profile.area}` : ''}`} icon="map-outline" />
-          <SpecItem label="طبيعة السكن" value={profile.accommodation} icon="home-outline" />
-        </View>
-
-        {/* Education & Job Section */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>التعليم والعمل</Text>
-          <SpecItem label="المؤهل الدراسي" value={profile.education} icon="school-outline" />
-          <SpecItem label="الوظيفة / العمل" value={profile.job} icon="briefcase-outline" />
-          <SpecItem label="مستوى الدخل" value={profile.income} icon="cash-outline" />
-        </View>
-
-        {/* Religious Commitment */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>الالتزام الديني</Text>
-          <SpecItem label="المحافظة على الصلاة" value={profile.prayer} icon="sparkles-outline" />
-          {isFemale && <SpecItem label="الحجاب / النقاب" value={profile.hijab} icon="shield-checkmark-outline" />}
-          <SpecItem label="التدخين" value={profile.smoking} icon="alert-circle-outline" />
-          <SpecItem label="أي أمراض مزمنة" value={profile.diseases || 'لا يوجد'} icon="medkit-outline" />
-        </View>
-
-        {/* Partner Specifications */}
-        {profile.partner_specs || profile.req_governorate ? (
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>المواصفات المطلوبة في شريك الحياة</Text>
-            {profile.req_age_min && (
-              <SpecItem label="السن المطلوب" value={`من ${profile.req_age_min} إلى ${profile.req_age_max || '+'} سنة`} />
-            )}
-            {profile.req_governorate && <SpecItem label="المحافظة المطلوبة" value={profile.req_governorate} />}
-            {profile.req_education && <SpecItem label="المؤهل المطلوب" value={profile.req_education} />}
-            {profile.partner_specs ? (
-              <Text style={[styles.bioText, { marginTop: 10 }]}>"{profile.partner_specs}"</Text>
-            ) : null}
-          </View>
-        ) : null}
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {/* Floating Bottom Action Bar */}
-      <View style={styles.floatingActionBar}>
-        <TouchableOpacity
-          style={styles.favBottomBtn}
-          onPress={handleToggleFavorite}
-        >
-          <Ionicons
-            name={isFavorite ? 'heart' : 'heart-outline'}
-            size={24}
-            color={isFavorite ? COLORS.primary : COLORS.textMuted}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.contactBtn}
-          onPress={handleRequestContact}
-        >
-          <Ionicons name="call" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
-          <Text style={styles.contactBtnText}>
-            {isFemale ? 'طلب رقم ولي الأمر' : 'طلب رقم التواصل'}
+          <Text style={styles.partnerName}>
+            {profile.nickname || partner.name}
+            {age ? `، ${age} سنة` : ''}
           </Text>
-        </TouchableOpacity>
-      </View>
+          <Text style={styles.partnerSub}>
+            {profile.marital_status || 'غير محدد'} • {profile.job || 'غير محدد'}
+          </Text>
+
+          {score !== null && score !== undefined && (
+            <View style={styles.scorePill}>
+              <Text style={styles.scoreValue}>{score}%</Text>
+              <Text style={styles.scoreText}>نسبة التوافق</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Profile Attributes Grid (Matches Web Modal Grid) */}
+        <Text style={styles.sectionTitle}>المعلومات والمواصفات الشخصية</Text>
+        <View style={styles.gridContainer}>
+          {profileFields.map((field, index) => (
+            <View key={index} style={styles.gridItem}>
+              <Text style={styles.gridLabel}>{field.label}</Text>
+              <Text style={styles.gridValue}>{field.value}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Bio Quote Card */}
+        {profile.bio ? (
+          <View style={styles.quoteSection}>
+            <Text style={styles.quoteTitle}>نبذة تعريفية</Text>
+            <View style={styles.bioCard}>
+              <Text style={styles.bioText}>{profile.bio}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Partner Specs Quote Card */}
+        {profile.partner_specs ? (
+          <View style={styles.quoteSection}>
+            <Text style={styles.quoteTitle}>المواصفات المطلوبة في الشريك</Text>
+            <View style={styles.specsCard}>
+              <Text style={styles.specsText}>{profile.partner_specs}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Contact Action Box (Matches Web Modal) */}
+        <View style={styles.contactContainer}>
+          {partner.is_unlocked ? (
+            <View>
+              <View style={styles.unlockedBox}>
+                <View style={styles.unlockedHeaderRow}>
+                  <Ionicons name="lock-open" size={20} color="#25D366" />
+                  <Text style={styles.unlockedHeaderText}>تم فك القفل — رقم ولي الأمر</Text>
+                </View>
+                <Text style={styles.unlockedPhone}>{partner.phone || profile.guardian_phone || 'متاح'}</Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.whatsAppFullBtn}
+                activeOpacity={0.88}
+                onPress={handleWhatsApp}
+              >
+                <Ionicons name="logo-whatsapp" size={22} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                <Text style={styles.whatsAppFullBtnText}>تواصل مع ولي الأمر عبر واتساب</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View>
+              <View style={styles.lockedBox}>
+                <Ionicons name="lock-closed" size={24} color="#E91E63" style={{ marginBottom: 6 }} />
+                <Text style={styles.lockedBoxText}>
+                  رقم ولي الأمر مخفي — اضغط فك القفل للتواصل عبر واتساب
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.88}
+                onPress={handleUnlock}
+                disabled={unlocking}
+                style={styles.unlockBtnWrapper}
+              >
+                <LinearGradient
+                  colors={['#E91E63', '#FF85A2']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.unlockFullBtn}
+                >
+                  <Ionicons name="lock-open-outline" size={20} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                  <Text style={styles.unlockFullBtnText}>
+                    {unlocking ? 'جاري فك القفل...' : 'فك القفل والتواصل عبر واتساب'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -213,177 +235,235 @@ export default function MatchDetailScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F8F9FE',
   },
-  topBar: {
-    flexDirection: 'row',
+  topHeader: {
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F1F4F9',
   },
-  topBarTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: COLORS.secondary,
-  },
-  iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#F8F9FE',
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#2D1B4D',
   },
   scrollContent: {
     padding: 16,
+    paddingBottom: 40,
   },
-  bannerCard: {
+  profileHeaderCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: 28,
+    padding: 24,
     alignItems: 'center',
-    marginBottom: 14,
-    ...SHADOWS.small,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#F1F4F9',
+    ...SHADOWS.card,
   },
-  avatarBig: {
+  avatarCircle: {
     width: 86,
     height: 86,
-    borderRadius: 28,
+    borderRadius: 43,
+    backgroundColor: '#FFF0F5',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
-  maleAvatar: {
-    backgroundColor: COLORS.male,
+  partnerName: {
+    fontSize: 21,
+    fontWeight: '900',
+    color: '#2D1B4D',
+    textAlign: 'center',
+    marginBottom: 4,
   },
-  femaleAvatar: {
-    backgroundColor: COLORS.female,
+  partnerSub: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#E91E63',
+    textAlign: 'center',
+    marginBottom: 10,
   },
-  profileName: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.secondary,
-  },
-  profileId: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginTop: 2,
-    marginBottom: 12,
-  },
-  quickChips: {
-    flexDirection: 'row-reverse',
-    gap: 8,
-  },
-  quickChip: {
+  scorePill: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+    backgroundColor: '#FFF0F5',
+    borderWidth: 1,
+    borderColor: '#FBCFE8',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
   },
-  quickChipText: {
+  scoreValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#E91E63',
+  },
+  scoreText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primary,
-  },
-  bioCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
-    ...SHADOWS.small,
-  },
-  sectionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
-    ...SHADOWS.small,
+    color: '#8B94B7',
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: COLORS.secondary,
+    fontSize: 15.5,
+    fontWeight: '900',
+    color: '#2D1B4D',
     textAlign: 'right',
     marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
-    paddingBottom: 8,
+    paddingHorizontal: 4,
   },
-  specItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 9,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
+  gridContainer: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 20,
   },
-  specLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  gridItem: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#F1F4F9',
+    alignItems: 'flex-end',
+    ...SHADOWS.small,
   },
-  specLabel: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    fontWeight: '600',
-  },
-  specValue: {
-    fontSize: 13.5,
+  gridLabel: {
+    fontSize: 11,
     fontWeight: '700',
-    color: COLORS.text,
+    color: '#8B94B7',
+    marginBottom: 3,
+  },
+  gridValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#2D1B4D',
+    textAlign: 'right',
+  },
+  quoteSection: {
+    marginBottom: 18,
+  },
+  quoteTitle: {
+    fontSize: 14.5,
+    fontWeight: '900',
+    color: '#2D1B4D',
+    textAlign: 'right',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  bioCard: {
+    backgroundColor: '#FFF9FB',
+    borderWidth: 1,
+    borderColor: '#FFE6EE',
+    borderRadius: 18,
+    padding: 16,
   },
   bioText: {
     fontSize: 13.5,
-    color: COLORS.text,
+    fontWeight: '600',
+    color: '#4C3A7A',
     textAlign: 'right',
     lineHeight: 22,
-    fontStyle: 'italic',
   },
-  floatingActionBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    ...SHADOWS.medium,
+  specsCard: {
+    backgroundColor: '#F9FFF9',
+    borderWidth: 1,
+    borderColor: '#E6FFE6',
+    borderRadius: 18,
+    padding: 16,
   },
-  favBottomBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
+  specsText: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#166534',
+    textAlign: 'right',
+    lineHeight: 22,
+  },
+  contactContainer: {
+    marginTop: 10,
+  },
+  unlockedBox: {
+    backgroundColor: '#F0FFF4',
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: '#C6F6D5',
+    borderRadius: 20,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  contactBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary,
+  unlockedHeaderRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  unlockedHeaderText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  unlockedPhone: {
+    fontSize: 19,
+    fontWeight: '900',
+    color: '#2D1B4D',
+  },
+  whatsAppFullBtn: {
+    backgroundColor: '#25D366',
+    borderRadius: 18,
+    paddingVertical: 14,
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOWS.small,
   },
-  contactBtnText: {
-    color: '#FFFFFF',
+  whatsAppFullBtnText: {
     fontSize: 15,
     fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  lockedBox: {
+    backgroundColor: '#FFF9FB',
+    borderWidth: 1.5,
+    borderColor: '#FFE6EE',
+    borderRadius: 20,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  lockedBoxText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  unlockBtnWrapper: {
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  unlockFullBtn: {
+    paddingVertical: 14,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.glow,
+  },
+  unlockFullBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

@@ -8,6 +8,8 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import OtpScreen from '../screens/auth/OtpScreen';
 import MatchDetailScreen from '../screens/main/MatchDetailScreen';
 import EditProfileScreen from '../screens/main/EditProfileScreen';
+import ProfileScreen from '../screens/main/ProfileScreen';
+import SubscriptionScreen from '../screens/main/SubscriptionScreen';
 import { COLORS } from '../constants/theme';
 
 const Stack = createNativeStackNavigator();
@@ -30,6 +32,8 @@ export default function AppNavigator() {
           <Stack.Screen name="MainTabs" component={TabNavigator} />
           <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+          <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+          <Stack.Screen name="SubscriptionScreen" component={SubscriptionScreen} />
         </>
       ) : (
         <>

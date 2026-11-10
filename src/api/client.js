@@ -82,6 +82,11 @@ export const api = {
 
   // Matches
   getMatches: (params = '') => request(`/matches${params ? `?${params}` : ''}`, 'GET'),
+  unlockContact: (partnerId) => request(`/matches/${partnerId}/contact`, 'POST'),
+
+  // Subscriptions
+  subscribePlan: (planType) => request('/subscriptions/subscribe', 'POST', { type: planType }),
+  submitManualTransfer: (formData) => request('/subscriptions/manual-transfer', 'POST', formData),
 
   // Favorites
   getFavorites: () => request('/favorites', 'GET'),
