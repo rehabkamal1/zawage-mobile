@@ -14,7 +14,7 @@ import { api } from '../../api/client';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function OtpScreen({ route, navigation }) {
-  const { email, password } = route.params || {};
+  const { email, phone, password, auth_method } = route.params || {};
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -28,7 +28,13 @@ export default function OtpScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      await login(email, password, code.trim());
+      await login({
+        auth_method: auth_method || (phone ? 'phone' : 'email'),
+        email: email || null,
+        phone: phone || null,
+        password,
+        code: code.trim(),
+      });
     } catch (err) {
       Alert.alert('خطأ في التحقق', err.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
     } finally {
@@ -39,8 +45,12 @@ export default function OtpScreen({ route, navigation }) {
   const handleResend = async () => {
     setResending(true);
     try {
-      const res = await api.sendOtp({ email });
-      Alert.alert('تم الإرسال', res.message || 'تم إرسال رمز تحقق جديد إلى بريدك');
+      const res = await api.sendOtp({
+        auth_method: auth_method || (phone ? 'phone' : 'email'),
+        email: email || null,
+        phone: phone || null,
+      });
+      Alert.alert('تم الإرسال', res.message || 'تم إرسال رمز تحقق جديد');
     } catch (err) {
       Alert.alert('تعذر الإرسال', err.message || 'حدث خطأ أثناء إعادة إرسال الرمز');
     } finally {

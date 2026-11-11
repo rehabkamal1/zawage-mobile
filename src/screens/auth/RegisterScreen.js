@@ -18,43 +18,123 @@ import { useAuth } from '../../context/AuthContext';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function RegisterScreen({ navigation }) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [step, setStep] = useState(1); // 1: Info, 2: OTP (for email)
+  const [authMethod, setAuthMethod] = useState('phone'); // 'phone' | 'email'
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
-  const [gender, setGender] = useState('male'); // male | female
+  const [showPassword, setShowPassword] = useState(false);
+  const [gender, setGender] = useState('male'); // 'male' | 'female'
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const [errors, setErrors] = useState({});
+  const { register, login } = useAuth();
 
   const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      Alert.alert('تنبيه', 'يرجى إكمال جميع الحقول المطلوبة');
+    const newErrors = {};
+
+    if (authMethod === 'phone') {
+      const cleanPhone = phone.trim();
+      if (!cleanPhone) {
+        newErrors.phone = 'يرجى إدخال رقم الهاتف';
+      } else if (!/^\d{11}$/.test(cleanPhone)) {
+        newErrors.phone = 'رقم الهاتف يجب أن يتكون من 11 رقماً صحيحاً (مثال: 01012345678)';
+      }
+    } else {
+      const cleanEmail = email.trim();
+      if (!cleanEmail) {
+        newErrors.email = 'يرجى إدخال البريد الإلكتروني';
+      } else {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(cleanEmail)) {
+          newErrors.email = 'برجاء إدخال بريد إلكتروني صحيح';
+        }
+      }
+    }
+
+    if (!password) {
+      newErrors.password = 'يرجى إدخال كلمة المرور';
+    } else if (password.length < 6) {
+      newErrors.password = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('تنبيه', 'كلمة المرور يجب ألا تقل عن 6 أحرف أو أرقام');
-      return;
-    }
-
+    setErrors({});
     setLoading(true);
+
     try {
-      const res = await register(name.trim(), email.trim(), password, gender, phone.trim());
-      Alert.alert(
-        'تم إنشاء الحساب بنجاح! 🎉',
-        res.message || 'يرجى إدخال رمز التحقق (OTP) المرسل إليك لتفعيل الحساب.',
-        [
-          {
-            text: 'متابعة',
-            onPress: () => navigation.navigate('Otp', { email: email.trim(), password }),
-          },
-        ]
-      );
+      const payload = {
+        name: name.trim() || undefined,
+        email: authMethod === 'email' ? email.trim() : null,
+        phone: authMethod === 'phone' ? phone.trim() : null,
+        password,
+        gender,
+        auth_method: authMethod,
+      };
+
+      await register(payload);
+
+      if (authMethod === 'email') {
+        setStep(2);
+        Alert.alert(
+          'تم التسجيل المبدئي 🎉',
+          'تم إرسال كود التحقق لبريدك الإلكتروني، يرجى إدخاله لتفعيل الحساب.'
+        );
+      } else {
+        // Auto-login bypassing OTP for phone (mirrors website behavior)
+        try {
+          await login({
+            auth_method: 'phone',
+            phone: phone.trim(),
+            password,
+          });
+          Alert.alert('تم إنشاء الحساب بنجاح! 🎉', 'مرحباً بك في منصة نصفي الآخر.');
+        } catch (loginErr) {
+          Alert.alert(
+            'تم إنشاء الحساب',
+            'تم إنشاء حسابك بنجاح، يمكنك الآن تسجيل الدخول مباشرة.',
+            [{ text: 'تسجيل الدخول', onPress: () => navigation.navigate('Login') }]
+          );
+        }
+      }
     } catch (err) {
-      Alert.alert('تعذر التسجيل', err.message || 'حدث خطأ أثناء إنشاء الحساب');
+      Alert.alert('تنبيه', err.message || 'حدث خطأ أثناء إنشاء الحساب');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!otp.trim()) {
+      setErrors({ otp: 'يرجى إدخال رمز التحقق' });
+      return;
+    }
+
+    setErrors({});
+    setLoading(true);
+
+    try {
+      await login({
+        auth_method: 'email',
+        email: email.trim(),
+        password,
+        code: otp.trim(),
+      });
+      Alert.alert('تم تفعيل الحساب بنجاح! 🎉', 'مرحباً بك في منصتنا.');
+    } catch (err) {
+      Alert.alert('خطأ', err.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showInfoModal = (title, message) => {
+    Alert.alert(title, message, [{ text: 'حسناً' }]);
   };
 
   return (
@@ -62,7 +142,27 @@ export default function RegisterScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Back Button */}
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => {
+            if (step === 2) {
+              setStep(1);
+            } else if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Login');
+            }
+          }}
+        >
+          <Ionicons name="arrow-forward" size={22} color="#2D1B4D" />
+        </TouchableOpacity>
+
         {/* Brand Header */}
         <View style={styles.header}>
           <Image
@@ -70,158 +170,376 @@ export default function RegisterScreen({ navigation }) {
             style={styles.logoImage}
             resizeMode="contain"
           />
-          <Text style={styles.appTitle}>إنشاء حساب جديد</Text>
-          <Text style={styles.appSubtitle}>انضم إلى منصة نصفي الآخر للتوفيق الحلال</Text>
+          <Text style={styles.appTitle}>
+            {step === 1 ? 'إنشاء حساب جديد' : 'تأكيد الحساب'}
+          </Text>
+          <Text style={styles.appSubtitle}>
+            {step === 1
+              ? 'قم بإنشاء حسابك للبدء في العثور على شريك حياتك'
+              : `تم إرسال رمز التحقق إلى ${authMethod === 'phone' ? phone : email}`}
+          </Text>
         </View>
 
         {/* Register Card */}
         <View style={styles.card}>
-          {/* Gender Selector */}
-          <Text style={styles.label}>أنا أسجل بصفتي:</Text>
-          <View style={styles.genderRow}>
-            <TouchableOpacity
-              style={[
-                styles.genderBox,
-                gender === 'male' && styles.genderBoxActiveMale,
-              ]}
-              onPress={() => setGender('male')}
-            >
-              <Ionicons
-                name="man"
-                size={24}
-                color={gender === 'male' ? '#FFFFFF' : '#0284C7'}
-              />
-              <Text
-                style={[
-                  styles.genderText,
-                  gender === 'male' && styles.genderTextActive,
-                ]}
-              >
-                عريس (شاب)
-              </Text>
-            </TouchableOpacity>
+          {step === 1 ? (
+            <>
+              {/* Auth Method Selector (Tabs) */}
+              <View style={styles.tabContainer}>
+                <TouchableOpacity
+                  style={[styles.tabBtn, authMethod === 'phone' && styles.tabBtnActive]}
+                  onPress={() => {
+                    setAuthMethod('phone');
+                    setErrors({});
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name="call"
+                    size={17}
+                    color={authMethod === 'phone' ? '#FFFFFF' : '#475569'}
+                    style={{ marginLeft: 6 }}
+                  />
+                  <Text
+                    style={[
+                      styles.tabBtnText,
+                      authMethod === 'phone' && styles.tabBtnTextActive,
+                    ]}
+                  >
+                    رقم الهاتف (واتساب)
+                  </Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.genderBox,
-                gender === 'female' && styles.genderBoxActiveFemale,
-              ]}
-              onPress={() => setGender('female')}
-            >
-              <Ionicons
-                name="woman"
-                size={24}
-                color={gender === 'female' ? '#FFFFFF' : '#E91E63'}
-              />
-              <Text
-                style={[
-                  styles.genderText,
-                  gender === 'female' && styles.genderTextActive,
-                ]}
-              >
-                عروسة (فتاة)
-              </Text>
-            </TouchableOpacity>
-          </View>
+                <TouchableOpacity
+                  style={[styles.tabBtn, authMethod === 'email' && styles.tabBtnActive]}
+                  onPress={() => {
+                    setAuthMethod('email');
+                    setErrors({});
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name="mail"
+                    size={17}
+                    color={authMethod === 'email' ? '#FFFFFF' : '#475569'}
+                    style={{ marginLeft: 6 }}
+                  />
+                  <Text
+                    style={[
+                      styles.tabBtnText,
+                      authMethod === 'email' && styles.tabBtnTextActive,
+                    ]}
+                  >
+                    البريد الإلكتروني
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-          {/* Full Name */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>الاسم بالكامل أو اللقب</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="أدخل اسمك الكريم"
-                placeholderTextColor={COLORS.textLight}
-                value={name}
-                onChangeText={setName}
-                textAlign="right"
-              />
-              <Ionicons name="person-outline" size={19} color="#8B94B7" style={styles.inputIcon} />
-            </View>
-          </View>
+              {/* Name Field (Optional) */}
+              <View style={styles.inputGroup}>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="person-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="الاسم أو اللقب (اختياري)"
+                    placeholderTextColor="#94A3B8"
+                    value={name}
+                    onChangeText={setName}
+                    textAlign="right"
+                  />
+                </View>
+              </View>
 
-          {/* Email */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>البريد الإلكتروني</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="name@example.com"
-                placeholderTextColor={COLORS.textLight}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                textAlign="right"
-              />
-              <Ionicons name="mail-outline" size={19} color="#8B94B7" style={styles.inputIcon} />
-            </View>
-          </View>
-
-          {/* Phone */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>رقم الهاتف / واتساب</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="010xxxxxxxx"
-                placeholderTextColor={COLORS.textLight}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                textAlign="right"
-              />
-              <Ionicons name="call-outline" size={19} color="#8B94B7" style={styles.inputIcon} />
-            </View>
-          </View>
-
-          {/* Password */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>كلمة المرور (6 خانات على الأقل)</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="••••••••"
-                placeholderTextColor={COLORS.textLight}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                textAlign="right"
-              />
-              <Ionicons name="lock-closed-outline" size={19} color="#8B94B7" style={styles.inputIcon} />
-            </View>
-          </View>
-
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={styles.submitBtnWrapper}
-            onPress={handleRegister}
-            disabled={loading}
-            activeOpacity={0.88}
-          >
-            <LinearGradient
-              colors={['#E91E63', '#FF85A2']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.submitBtn}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+              {/* Phone or Email Field */}
+              {authMethod === 'phone' ? (
+                <View style={styles.inputGroup}>
+                  <View style={[styles.inputWrapper, errors.phone && styles.inputWrapperError]}>
+                    <Ionicons name="call-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="رقم الهاتف (مثال: 01012345678)"
+                      placeholderTextColor="#94A3B8"
+                      value={phone}
+                      onChangeText={(val) => {
+                        setPhone(val);
+                        if (errors.phone) setErrors({ ...errors, phone: null });
+                      }}
+                      keyboardType="phone-pad"
+                      textAlign="right"
+                    />
+                  </View>
+                  {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+                </View>
               ) : (
-                <>
-                  <Ionicons name="arrow-back-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
-                  <Text style={styles.submitBtnText}>متابعة التسجيل</Text>
-                </>
+                <View style={styles.inputGroup}>
+                  <View style={[styles.inputWrapper, errors.email && styles.inputWrapperError]}>
+                    <Ionicons name="mail-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="البريد الإلكتروني"
+                      placeholderTextColor="#94A3B8"
+                      value={email}
+                      onChangeText={(val) => {
+                        setEmail(val);
+                        if (errors.email) setErrors({ ...errors, email: null });
+                      }}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      textAlign="right"
+                    />
+                  </View>
+                  {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+                </View>
               )}
-            </LinearGradient>
-          </TouchableOpacity>
+
+              {/* Password Field */}
+              <View style={styles.inputGroup}>
+                <View style={[styles.inputWrapper, errors.password && styles.inputWrapperError]}>
+                  <Ionicons name="lock-closed-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { paddingLeft: 40 }]}
+                    placeholder="كلمة المرور (زيادة أمان)"
+                    placeholderTextColor="#94A3B8"
+                    value={password}
+                    onChangeText={(val) => {
+                      setPassword(val);
+                      if (errors.password) setErrors({ ...errors, password: null });
+                    }}
+                    secureTextEntry={!showPassword}
+                    textAlign="right"
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeBtn}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color="#8B94B7"
+                    />
+                  </TouchableOpacity>
+                </View>
+                {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+              </View>
+
+              {/* Gender Radio Cards */}
+              <View style={styles.genderGroup}>
+                <Text style={styles.genderLabel}>الجنس</Text>
+                <View style={styles.genderGrid}>
+                  <TouchableOpacity
+                    style={[
+                      styles.genderCard,
+                      gender === 'male' && styles.genderCardActive,
+                    ]}
+                    onPress={() => setGender('male')}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons
+                      name="man"
+                      size={20}
+                      color={gender === 'male' ? '#E91E63' : '#64748B'}
+                      style={{ marginLeft: 6 }}
+                    />
+                    <Text
+                      style={[
+                        styles.genderCardText,
+                        gender === 'male' && styles.genderCardTextActive,
+                      ]}
+                    >
+                      عريس (ذكر)
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.genderCard,
+                      gender === 'female' && styles.genderCardActive,
+                    ]}
+                    onPress={() => setGender('female')}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons
+                      name="woman"
+                      size={20}
+                      color={gender === 'female' ? '#E91E63' : '#64748B'}
+                      style={{ marginLeft: 6 }}
+                    />
+                    <Text
+                      style={[
+                        styles.genderCardText,
+                        gender === 'female' && styles.genderCardTextActive,
+                      ]}
+                    >
+                      عروسة (أنثى)
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                style={styles.submitBtnWrapper}
+                onPress={handleRegister}
+                disabled={loading}
+                activeOpacity={0.88}
+              >
+                <LinearGradient
+                  colors={['#E91E63', '#FF6090']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.submitBtn}
+                >
+                  {loading ? (
+                    <View style={styles.loadingRow}>
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                      <Text style={[styles.submitBtnText, { marginRight: 8 }]}>
+                        جاري الإرسال...
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.submitBtnText}>إنشاء حساب</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Terms agreement text */}
+              <Text style={styles.termsNotice}>
+                بإنشاء حسابك، أنت توافق على{' '}
+                <Text
+                  style={styles.termsLink}
+                  onPress={() =>
+                    showInfoModal(
+                      'شروط الاستخدام',
+                      'المنصة مخصصة للزواج الشرعي فقط وبجدية تامة، وأي استخدام مخالف يعرض الحساب للحظر النهائي.'
+                    )
+                  }
+                >
+                  شروط الاستخدام
+                </Text>{' '}
+                و{' '}
+                <Text
+                  style={styles.termsLink}
+                  onPress={() =>
+                    showInfoModal(
+                      'سياسة الخصوصية',
+                      'بياناتك الشخصية مشفرة ومحفوظة بسرية تامة ولا تظهر إلا للمطابقين بطلب رسمي.'
+                    )
+                  }
+                >
+                  سياسة الخصوصية
+                </Text>{' '}
+                والضوابط الشرعية للمنصة.
+              </Text>
+            </>
+          ) : (
+            <>
+              {/* Step 2: OTP Verification */}
+              <View style={styles.inputGroup}>
+                <View style={[styles.inputWrapper, errors.otp && styles.inputWrapperError]}>
+                  <Ionicons name="key-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { textAlign: 'center', letterSpacing: 4 }]}
+                    placeholder="رمز التحقق (OTP)"
+                    placeholderTextColor="#94A3B8"
+                    value={otp}
+                    onChangeText={(val) => {
+                      setOtp(val);
+                      if (errors.otp) setErrors({ ...errors, otp: null });
+                    }}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                  />
+                </View>
+                {errors.otp && <Text style={styles.errorText}>{errors.otp}</Text>}
+              </View>
+
+              <TouchableOpacity
+                style={styles.submitBtnWrapper}
+                onPress={handleVerifyOTP}
+                disabled={loading}
+                activeOpacity={0.88}
+              >
+                <LinearGradient
+                  colors={['#E91E63', '#FF6090']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.submitBtn}
+                >
+                  {loading ? (
+                    <View style={styles.loadingRow}>
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                      <Text style={[styles.submitBtnText, { marginRight: 8 }]}>
+                        جاري التحقق...
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.submitBtnText}>تأكيد الرمز والدخول</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.changeDataBtn}
+                onPress={() => setStep(1)}
+              >
+                <Text style={styles.changeDataText}>تغيير البيانات</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           {/* Switch to Login */}
           <View style={styles.footerRow}>
+            <Text style={styles.footerText}>لديك حساب بالفعل؟</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
               <Text style={styles.footerLink}>تسجيل الدخول</Text>
             </TouchableOpacity>
-            <Text style={styles.footerText}>لديك حساب بالفعل؟</Text>
+          </View>
+
+          {/* Web Links Footer */}
+          <View style={styles.linksRow}>
+            <TouchableOpacity
+              onPress={() =>
+                showInfoModal(
+                  'عن المنصة',
+                  'نصفي الآخر هي منصة إسلامية رائدة تهدف للتوفيق الحلال والزواج الشرعي الميسر بخصوصية وأمان تام.'
+                )
+              }
+            >
+              <Text style={styles.linkText}>عن المنصة</Text>
+            </TouchableOpacity>
+            <Text style={styles.dotSeparator}>•</Text>
+            <TouchableOpacity
+              onPress={() =>
+                showInfoModal(
+                  'شروط الاستخدام',
+                  'المنصة مخصصة للزواج الشرعي فقط وبجدية تامة، وأي استخدام مخالف يعرض الحساب للحظر النهائي.'
+                )
+              }
+            >
+              <Text style={styles.linkText}>شروط الاستخدام</Text>
+            </TouchableOpacity>
+            <Text style={styles.dotSeparator}>•</Text>
+            <TouchableOpacity
+              onPress={() =>
+                showInfoModal(
+                  'سياسة الخصوصية',
+                  'بياناتك الشخصية وأرقام التواصل مشفرة ومحفوظة بسرية تامة ولا تظهر إلا للمطابقين بطلب رسمي.'
+                )
+              }
+            >
+              <Text style={styles.linkText}>سياسة الخصوصية</Text>
+            </TouchableOpacity>
+            <Text style={styles.dotSeparator}>•</Text>
+            <TouchableOpacity
+              onPress={() =>
+                showInfoModal(
+                  'اتصل بنا',
+                  'فريق الدعم الفني متاح دائماً عبر الواتساب على مدار الساعة لمساعدتك: 01017961150'
+                )
+              }
+            >
+              <Text style={styles.linkText}>اتصل بنا</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -236,78 +554,85 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
-    paddingTop: 45,
+    justifyContent: 'center',
+    padding: 20,
+    paddingTop: 50,
     paddingBottom: 40,
+  },
+  backBtn: {
+    position: 'absolute',
+    top: 45,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    ...SHADOWS.card,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   logoImage: {
-    width: 60,
-    height: 60,
-    marginBottom: 10,
+    width: 74,
+    height: 74,
+    marginBottom: 12,
   },
   appTitle: {
     fontSize: 24,
     fontWeight: '900',
     color: '#2D1B4D',
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   appSubtitle: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#8B94B7',
-    marginTop: 4,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 5,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 28,
+    borderRadius: 26,
     padding: 22,
     borderWidth: 1,
     borderColor: '#F1F4F9',
     ...SHADOWS.card,
   },
-  label: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: '#2D1B4D',
-    textAlign: 'right',
-    marginBottom: 6,
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    padding: 5,
+    borderRadius: 14,
+    marginBottom: 18,
+    gap: 6,
   },
-  genderRow: {
-    flexDirection: 'row-reverse',
-    gap: 12,
-    marginBottom: 16,
-  },
-  genderBox: {
+  tabBtn: {
     flex: 1,
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#E8ECF4',
-    backgroundColor: '#F8F9FE',
-    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'transparent',
   },
-  genderBoxActiveMale: {
-    backgroundColor: '#0284C7',
-    borderColor: '#0284C7',
-  },
-  genderBoxActiveFemale: {
+  tabBtnActive: {
     backgroundColor: '#E91E63',
-    borderColor: '#E91E63',
+    ...SHADOWS.glow,
   },
-  genderText: {
-    fontSize: 13.5,
-    fontWeight: '800',
-    color: '#2D1B4D',
+  tabBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
   },
-  genderTextActive: {
+  tabBtnTextActive: {
     color: '#FFFFFF',
+    fontWeight: '800',
   },
   inputGroup: {
     marginBottom: 14,
@@ -318,51 +643,156 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FE',
     borderWidth: 1.5,
     borderColor: '#E8ECF4',
-    borderRadius: 16,
-    paddingHorizontal: 12,
+    borderRadius: 15,
+    paddingHorizontal: 14,
+    minHeight: 52,
+  },
+  inputWrapperError: {
+    borderColor: '#E91E63',
+    backgroundColor: '#FFF5F8',
   },
   inputIcon: {
-    marginLeft: 8,
+    marginLeft: 10,
   },
   input: {
     flex: 1,
-    paddingVertical: 11,
-    fontSize: 13.5,
+    paddingVertical: 12,
+    fontSize: 14.5,
     fontWeight: '700',
     color: '#2D1B4D',
+    textAlign: 'right',
   },
-  submitBtnWrapper: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    marginTop: 8,
-    ...SHADOWS.glow,
+  eyeBtn: {
+    position: 'absolute',
+    left: 12,
+    padding: 6,
   },
-  submitBtn: {
+  errorText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#E91E63',
+    textAlign: 'right',
+    marginTop: 4,
+    marginRight: 4,
+  },
+  genderGroup: {
+    marginBottom: 16,
+  },
+  genderLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: 8,
+    textAlign: 'right',
+  },
+  genderGrid: {
+    flexDirection: 'row-reverse',
+    gap: 10,
+  },
+  genderCard: {
+    flex: 1,
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: 13,
+    borderWidth: 1.5,
+    borderColor: '#E8ECF4',
+    borderRadius: 14,
+    backgroundColor: '#F8F9FE',
+  },
+  genderCardActive: {
+    borderColor: '#E91E63',
+    backgroundColor: '#FFF0F5',
+  },
+  genderCardText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  genderCardTextActive: {
+    color: '#E91E63',
+    fontWeight: '800',
+  },
+  submitBtnWrapper: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 6,
+    marginBottom: 14,
+    ...SHADOWS.glow,
+  },
+  submitBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
   },
   submitBtnText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '900',
     color: '#FFFFFF',
+  },
+  loadingRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  changeDataBtn: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  changeDataText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#64748B',
+    textDecorationLine: 'underline',
+  },
+  termsNotice: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 18,
+  },
+  termsLink: {
+    color: '#E91E63',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   footerRow: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 18,
     gap: 6,
+    marginBottom: 18,
   },
   footerText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#8B94B7',
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#64748B',
   },
   footerLink: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '900',
     color: '#E91E63',
+  },
+  linksRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F4F9',
+  },
+  linkText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  dotSeparator: {
+    fontSize: 11,
+    color: '#CBD5E1',
   },
 });

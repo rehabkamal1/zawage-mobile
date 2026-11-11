@@ -18,21 +18,59 @@ import { useAuth } from '../../context/AuthContext';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function LoginScreen({ navigation }) {
-  const [identifier, setIdentifier] = useState('');
+  const [authMethod, setAuthMethod] = useState('phone'); // 'phone' | 'email'
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const { login } = useAuth();
 
   const handleLogin = async () => {
-    if (!identifier.trim() || !password.trim()) {
-      Alert.alert('تنبيه', 'يرجى إدخال البريد الإلكتروني أو الهاتف وكلمة المرور');
+    const newErrors = {};
+
+    if (authMethod === 'phone') {
+      const cleanPhone = phone.trim();
+      if (!cleanPhone) {
+        newErrors.phone = 'يرجى إدخال رقم الهاتف';
+      } else if (!/^\d{11}$/.test(cleanPhone)) {
+        newErrors.phone = 'رقم الهاتف يجب أن يتكون من 11 رقماً صحيحاً (مثال: 01012345678)';
+      }
+    } else {
+      const cleanEmail = email.trim();
+      if (!cleanEmail) {
+        newErrors.email = 'يرجى إدخال البريد الإلكتروني';
+      } else {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(cleanEmail)) {
+          newErrors.email = 'برجاء إدخال بريد إلكتروني صحيح';
+        }
+      }
+    }
+
+    if (!password) {
+      newErrors.password = 'يرجى إدخال كلمة المرور';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
+    setErrors({});
     setLoading(true);
+
     try {
-      await login(identifier.trim(), password);
+      const payload = {
+        auth_method: authMethod,
+        phone: authMethod === 'phone' ? phone.trim() : null,
+        email: authMethod === 'email' ? email.trim() : null,
+        password,
+      };
+
+      await login(payload);
+      // Navigation is automatically handled when isAuthenticated turns true
     } catch (err) {
       Alert.alert('تعذر تسجيل الدخول', err.message || 'بيانات الدخول غير صحيحة');
     } finally {
@@ -40,12 +78,27 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  const showInfoModal = (title, message) => {
+    Alert.alert(title, message, [{ text: 'حسناً' }]);
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Back Button (if can go back) */}
+        {navigation.canGoBack() && (
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-forward" size={22} color="#2D1B4D" />
+          </TouchableOpacity>
+        )}
+
         {/* Brand Header */}
         <View style={styles.header}>
           <Image
@@ -53,34 +106,115 @@ export default function LoginScreen({ navigation }) {
             style={styles.logoImage}
             resizeMode="contain"
           />
-          <Text style={styles.appTitle}>نصفي الآخر</Text>
-          <Text style={styles.appSubtitle}>منصة التوفيق الحلال والزواج الشرعي</Text>
+          <Text style={styles.appTitle}>تسجيل الدخول</Text>
+          <Text style={styles.appSubtitle}>سجل الدخول برقم الهاتف أو بريدك وكلمة المرور</Text>
         </View>
 
         {/* Login Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>تسجيل الدخول</Text>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>البريد الإلكتروني أو رقم الهاتف</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="أدخل بريدك أو رقم هاتفك"
-                placeholderTextColor={COLORS.textLight}
-                value={identifier}
-                onChangeText={setIdentifier}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                textAlign="right"
+          {/* Auth Method Selector (Tabs) */}
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
+              style={[styles.tabBtn, authMethod === 'phone' && styles.tabBtnActive]}
+              onPress={() => {
+                setAuthMethod('phone');
+                setErrors({});
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="call"
+                size={17}
+                color={authMethod === 'phone' ? '#FFFFFF' : '#475569'}
+                style={{ marginLeft: 6 }}
               />
-              <Ionicons name="person-outline" size={19} color="#8B94B7" style={styles.inputIcon} />
-            </View>
+              <Text
+                style={[styles.tabBtnText, authMethod === 'phone' && styles.tabBtnTextActive]}
+              >
+                رقم الهاتف (واتساب)
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabBtn, authMethod === 'email' && styles.tabBtnActive]}
+              onPress={() => {
+                setAuthMethod('email');
+                setErrors({});
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="mail"
+                size={17}
+                color={authMethod === 'email' ? '#FFFFFF' : '#475569'}
+                style={{ marginLeft: 6 }}
+              />
+              <Text
+                style={[styles.tabBtnText, authMethod === 'email' && styles.tabBtnTextActive]}
+              >
+                البريد الإلكتروني
+              </Text>
+            </TouchableOpacity>
           </View>
 
+          {/* Phone Field */}
+          {authMethod === 'phone' ? (
+            <View style={styles.inputGroup}>
+              <View style={[styles.inputWrapper, errors.phone && styles.inputWrapperError]}>
+                <Ionicons name="call-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="رقم الهاتف (مثال: 01012345678)"
+                  placeholderTextColor="#94A3B8"
+                  value={phone}
+                  onChangeText={(val) => {
+                    setPhone(val);
+                    if (errors.phone) setErrors({ ...errors, phone: null });
+                  }}
+                  keyboardType="phone-pad"
+                  textAlign="right"
+                />
+              </View>
+              {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+            </View>
+          ) : (
+            <View style={styles.inputGroup}>
+              <View style={[styles.inputWrapper, errors.email && styles.inputWrapperError]}>
+                <Ionicons name="mail-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="البريد الإلكتروني"
+                  placeholderTextColor="#94A3B8"
+                  value={email}
+                  onChangeText={(val) => {
+                    setEmail(val);
+                    if (errors.email) setErrors({ ...errors, email: null });
+                  }}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  textAlign="right"
+                />
+              </View>
+              {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+            </View>
+          )}
+
+          {/* Password Field */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>كلمة المرور</Text>
-            <View style={styles.inputWrapper}>
+            <View style={[styles.inputWrapper, errors.password && styles.inputWrapperError]}>
+              <Ionicons name="lock-closed-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, { paddingLeft: 40 }]}
+                placeholder="كلمة المرور"
+                placeholderTextColor="#94A3B8"
+                value={password}
+                onChangeText={(val) => {
+                  setPassword(val);
+                  if (errors.password) setErrors({ ...errors, password: null });
+                }}
+                secureTextEntry={!showPassword}
+                textAlign="right"
+              />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeBtn}
@@ -91,20 +225,11 @@ export default function LoginScreen({ navigation }) {
                   color="#8B94B7"
                 />
               </TouchableOpacity>
-              <TextInput
-                style={[styles.input, { paddingLeft: 40 }]}
-                placeholder="••••••••"
-                placeholderTextColor={COLORS.textLight}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                textAlign="right"
-              />
-              <Ionicons name="lock-closed-outline" size={19} color="#8B94B7" style={styles.inputIcon} />
             </View>
+            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
           </View>
 
-          {/* Login Submit Button with Pink Gradient */}
+          {/* Submit Button */}
           <TouchableOpacity
             style={styles.submitBtnWrapper}
             onPress={handleLogin}
@@ -112,28 +237,75 @@ export default function LoginScreen({ navigation }) {
             activeOpacity={0.88}
           >
             <LinearGradient
-              colors={['#E91E63', '#FF85A2']}
+              colors={['#E91E63', '#FF6090']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.submitBtn}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <Text style={[styles.submitBtnText, { marginRight: 8 }]}>جاري التحقق...</Text>
+                </View>
               ) : (
-                <>
-                  <Ionicons name="log-in-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
-                  <Text style={styles.submitBtnText}>دخول إلى حسابي</Text>
-                </>
+                <Text style={styles.submitBtnText}>دخول</Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
 
           {/* Switch to Register */}
           <View style={styles.footerRow}>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.footerLink}>سجل حساب جديد الآن</Text>
-            </TouchableOpacity>
             <Text style={styles.footerText}>ليس لديك حساب؟</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.footerLink}>سجل الآن</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Web Links Footer */}
+          <View style={styles.linksRow}>
+            <TouchableOpacity
+              onPress={() =>
+                showInfoModal(
+                  'عن المنصة',
+                  'نصفي الآخر هي منصة إسلامية رائدة تهدف للتوفيق الحلال والزواج الشرعي الميسر بخصوصية وأمان تام.'
+                )
+              }
+            >
+              <Text style={styles.linkText}>عن المنصة</Text>
+            </TouchableOpacity>
+            <Text style={styles.dotSeparator}>•</Text>
+            <TouchableOpacity
+              onPress={() =>
+                showInfoModal(
+                  'شروط الاستخدام',
+                  'المنصة مخصصة للزواج الشرعي فقط وبجدية تامة، وأي استخدام مخالف يعرض الحساب للحظر النهائي.'
+                )
+              }
+            >
+              <Text style={styles.linkText}>شروط الاستخدام</Text>
+            </TouchableOpacity>
+            <Text style={styles.dotSeparator}>•</Text>
+            <TouchableOpacity
+              onPress={() =>
+                showInfoModal(
+                  'سياسة الخصوصية',
+                  'بياناتك الشخصية وأرقام التواصل مشفرة ومحفوظة بسرية تامة ولا تظهر إلا للمطابقين بطلب رسمي.'
+                )
+              }
+            >
+              <Text style={styles.linkText}>سياسة الخصوصية</Text>
+            </TouchableOpacity>
+            <Text style={styles.dotSeparator}>•</Text>
+            <TouchableOpacity
+              onPress={() =>
+                showInfoModal(
+                  'اتصل بنا',
+                  'فريق الدعم الفني متاح دائماً عبر الواتساب على مدار الساعة لمساعدتك: 01017961150'
+                )
+              }
+            >
+              <Text style={styles.linkText}>اتصل بنا</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -149,54 +321,86 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: 20,
     paddingTop: 50,
+    paddingBottom: 40,
+  },
+  backBtn: {
+    position: 'absolute',
+    top: 45,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    ...SHADOWS.card,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 24,
   },
   logoImage: {
-    width: 68,
-    height: 68,
-    marginBottom: 12,
+    width: 76,
+    height: 76,
+    marginBottom: 14,
   },
   appTitle: {
-    fontSize: 26,
+    fontSize: 25,
     fontWeight: '900',
     color: '#2D1B4D',
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   appSubtitle: {
     fontSize: 13.5,
-    fontWeight: '700',
-    color: '#8B94B7',
-    marginTop: 4,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 6,
+    textAlign: 'center',
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    padding: 24,
+    borderRadius: 26,
+    padding: 22,
     borderWidth: 1,
     borderColor: '#F1F4F9',
     ...SHADOWS.card,
   },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#2D1B4D',
-    textAlign: 'center',
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    padding: 5,
+    borderRadius: 14,
     marginBottom: 20,
+    gap: 6,
+  },
+  tabBtn: {
+    flex: 1,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'transparent',
+  },
+  tabBtnActive: {
+    backgroundColor: '#E91E63',
+    ...SHADOWS.glow,
+  },
+  tabBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  tabBtnTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   inputGroup: {
     marginBottom: 16,
-  },
-  label: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: '#2D1B4D',
-    textAlign: 'right',
-    marginBottom: 6,
   },
   inputWrapper: {
     flexDirection: 'row-reverse',
@@ -204,54 +408,94 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FE',
     borderWidth: 1.5,
     borderColor: '#E8ECF4',
-    borderRadius: 16,
-    paddingHorizontal: 12,
+    borderRadius: 15,
+    paddingHorizontal: 14,
+    minHeight: 52,
+  },
+  inputWrapperError: {
+    borderColor: '#E91E63',
+    backgroundColor: '#FFF5F8',
   },
   inputIcon: {
-    marginLeft: 8,
+    marginLeft: 10,
   },
   input: {
     flex: 1,
     paddingVertical: 12,
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '700',
     color: '#2D1B4D',
+    textAlign: 'right',
   },
   eyeBtn: {
+    position: 'absolute',
+    left: 12,
     padding: 6,
   },
+  errorText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#E91E63',
+    textAlign: 'right',
+    marginTop: 5,
+    marginRight: 4,
+  },
   submitBtnWrapper: {
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
-    marginTop: 8,
+    marginTop: 6,
+    marginBottom: 18,
     ...SHADOWS.glow,
   },
   submitBtn: {
-    flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 15,
   },
   submitBtnText: {
-    fontSize: 15.5,
+    fontSize: 16,
     fontWeight: '900',
     color: '#FFFFFF',
+  },
+  loadingRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   footerRow: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
     gap: 6,
+    marginBottom: 20,
   },
   footerText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#8B94B7',
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#64748B',
   },
   footerLink: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '900',
     color: '#E91E63',
+  },
+  linksRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F4F9',
+  },
+  linkText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  dotSeparator: {
+    fontSize: 11,
+    color: '#CBD5E1',
   },
 });

@@ -35,30 +35,48 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (emailOrPhone, password, code = null) => {
-    const payload = {
-      email: emailOrPhone,
-      password,
-    };
-    if (code) payload.code = code;
+  const login = async (credentialsOrIdentifier, maybePassword = null, maybeCode = null) => {
+    let payload = {};
+    if (typeof credentialsOrIdentifier === 'object' && credentialsOrIdentifier !== null) {
+      payload = { ...credentialsOrIdentifier };
+    } else {
+      const identifier = String(credentialsOrIdentifier || '').trim();
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+      payload = {
+        auth_method: isEmail ? 'email' : 'phone',
+        email: isEmail ? identifier : null,
+        phone: isEmail ? null : identifier,
+        password: maybePassword,
+      };
+      if (maybeCode) payload.code = maybeCode;
+    }
 
     const res = await api.login(payload);
-    if (res.token && res.user) {
-      setToken(res.token);
+    const token = res.access_token || res.token;
+    if (token && res.user) {
+      setToken(token);
       setUser(res.user);
-      await saveAuthData(res.token, res.user);
-      return res;
+      await saveAuthData(token, res.user);
+      return { ...res, token, access_token: token };
     }
     return res;
   };
 
-  const register = async (name, email, password, gender) => {
-    const res = await api.register({
-      name,
-      email,
-      password,
-      gender,
-    });
+  const register = async (userDataOrName, maybeEmail, maybePassword, maybeGender, maybePhone) => {
+    let payload = {};
+    if (typeof userDataOrName === 'object' && userDataOrName !== null) {
+      payload = { ...userDataOrName };
+    } else {
+      payload = {
+        name: userDataOrName,
+        email: maybeEmail,
+        password: maybePassword,
+        gender: maybeGender,
+        phone: maybePhone,
+        auth_method: maybePhone ? 'phone' : 'email',
+      };
+    }
+    const res = await api.register(payload);
     return res;
   };
 
