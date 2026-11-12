@@ -90,15 +90,27 @@ export default function ProfileScreen({ navigation }) {
             />
             <MenuItem
               icon="key-outline"
-              title="تغيير كلمة المرور"
-              subtitle="تحديث كلمة السر لحماية حسابك"
-              onPress={() => Alert.alert('تغيير كلمة المرور', 'يمكنك تحديث كلمة المرور من خلال إعدادات الحساب.')}
+              title="إعدادات الحساب وكلمة المرور"
+              subtitle="تحديث كلمة السر وحماية حسابك"
+              onPress={() => navigation.navigate('Settings')}
             />
             <MenuItem
               icon="shield-checkmark-outline"
               title="الضوابط الشرعية والأمان"
               subtitle="تعرف على معايير الخصوصية والتواصل الحلال"
-              onPress={() => Alert.alert('الضوابط الشرعية', 'منصة نصفي الآخر تلتزم بضوابط الشريعة الإسلامية ولا تتيح التعارف العشوائي، بل تيسر الزواج الشرعي عبر ولي الأمر.')}
+              onPress={() => navigation.navigate('Terms')}
+            />
+            <MenuItem
+              icon="lock-closed-outline"
+              title="سياسة الخصوصية وحماية البيانات"
+              subtitle="كيف نحافظ على سرية بياناتك وتشفيرها"
+              onPress={() => navigation.navigate('Privacy')}
+            />
+            <MenuItem
+              icon="headset-outline"
+              title="اتصل بنا والدعم الفني"
+              subtitle="تواصل مع إدارة المنصة مباشرة عبر واتساب"
+              onPress={() => navigation.navigate('Contact')}
             />
           </View>
         </View>

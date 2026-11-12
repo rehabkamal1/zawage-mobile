@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
 import { api, saveAuthData, getStoredAuthData, clearAuthData } from '../api/client';
 
 const AuthContext = createContext();
@@ -18,7 +18,8 @@ export const AuthProvider = ({ children }) => {
       if (savedToken && savedUser) {
         setToken(savedToken);
         setUser(savedUser);
-        // Optionally refresh user data in background
+
+        // Refresh user profile and subscriptions from backend in background
         api.getMe()
           .then(data => {
             if (data.user) {
@@ -52,12 +53,12 @@ export const AuthProvider = ({ children }) => {
     }
 
     const res = await api.login(payload);
-    const token = res.access_token || res.token;
-    if (token && res.user) {
-      setToken(token);
+    const resolvedToken = res.access_token || res.token;
+    if (resolvedToken && res.user) {
+      setToken(resolvedToken);
       setUser(res.user);
-      await saveAuthData(token, res.user);
-      return { ...res, token, access_token: token };
+      await saveAuthData(resolvedToken, res.user);
+      return { ...res, token: resolvedToken, access_token: resolvedToken };
     }
     return res;
   };
@@ -89,6 +90,21 @@ export const AuthProvider = ({ children }) => {
     await clearAuthData();
   };
 
+  const refreshUser = async () => {
+    try {
+      const data = await api.getMe();
+      if (data.user) {
+        setUser(data.user);
+        if (token) {
+          await saveAuthData(token, data.user);
+        }
+      }
+      return data.user;
+    } catch (e) {
+      return null;
+    }
+  };
+
   const updateUserProfile = (updatedUser) => {
     setUser(updatedUser);
     if (token) {
@@ -96,19 +112,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const value = useMemo(() => {
+    const role = user?.role || 'guest';
+    const isSuperAdmin = role === 'super_admin';
+    const isAdmin = isSuperAdmin || role === 'admin';
+    const isMale = user?.gender === 'male';
+    const isFemale = user?.gender === 'female';
+
+    return {
+      user,
+      token,
+      loading,
+      isAuthenticated: Boolean(token && user),
+      role,
+      isAdmin,
+      isSuperAdmin,
+      isMale,
+      isFemale,
+      login,
+      register,
+      logout,
+      refreshUser,
+      updateUserProfile,
+    };
+  }, [user, token, loading]);
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        loading,
-        isAuthenticated: !!token,
-        login,
-        register,
-        logout,
-        updateUserProfile,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

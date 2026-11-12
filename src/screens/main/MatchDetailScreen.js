@@ -9,6 +9,9 @@ import {
   StatusBar,
   Linking,
   Alert,
+  Modal,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +22,9 @@ export default function MatchDetailScreen({ route, navigation }) {
   const { partner: initialPartner, currentUser } = route.params || {};
   const [partner, setPartner] = useState(initialPartner || {});
   const [unlocking, setUnlocking] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [submittingReport, setSubmittingReport] = useState(false);
 
   const profile = partner.profile || {};
   const isMale = currentUser?.gender === 'male';
@@ -91,6 +97,27 @@ export default function MatchDetailScreen({ route, navigation }) {
     );
   };
 
+  const handleSendReport = async () => {
+    if (!reportReason.trim()) {
+      Alert.alert('تنبيه', 'يرجى كتابة سبب البلاغ قبل الإرسال.');
+      return;
+    }
+    setSubmittingReport(true);
+    try {
+      await api.sendReport(partner.id, reportReason.trim());
+      setReportModalVisible(false);
+      setReportReason('');
+      Alert.alert(
+        'تم إرسال البلاغ 🛡️',
+        'شكراً لتعاونك وحرصك. ستقوم إدارة المنصة بمراجعة البلاغ وتفاصيل الاستمارة واتخاذ الإجراء اللازم فوراً.'
+      );
+    } catch (err) {
+      Alert.alert('خطأ', err.message || 'تعذر إرسال البلاغ');
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
   const profileFields = [
     { label: 'المحافظة', value: profile.governorate || 'غير محدد' },
     { label: 'المدينة / المركز', value: profile.area || 'غير محدد' },
@@ -120,7 +147,13 @@ export default function MatchDetailScreen({ route, navigation }) {
           <Ionicons name="chevron-forward" size={24} color="#2D1B4D" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>تفاصيل الاستمارة</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          style={styles.reportHeaderBtn}
+          onPress={() => setReportModalVisible(true)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="flag-outline" size={20} color="#E11D48" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -226,8 +259,87 @@ export default function MatchDetailScreen({ route, navigation }) {
               </TouchableOpacity>
             </View>
           )}
+          {/* Report Button Link */}
+          <TouchableOpacity
+            style={styles.bottomReportLink}
+            onPress={() => setReportModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="shield-alert-outline" size={17} color="#E11D48" style={{ marginLeft: 6 }} />
+            <Text style={styles.bottomReportText}>إبلاغ إدارة المنصة عن مخالفة في هذه الاستمارة</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Report Modal */}
+      <Modal
+        visible={reportModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReportModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setReportModalVisible(false)}>
+                <Ionicons name="close-circle-outline" size={26} color="#8B94B7" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>إبلاغ عن استمارة</Text>
+            </View>
+
+            <Text style={styles.modalDesc}>
+              يرجى توضيح سبب الإبلاغ عن استمارة ({profile.nickname || partner.name}) لمساعدة الإدارة في اتخاذ الإجراء الشرعي والنظامي المناسب:
+            </Text>
+
+            {/* Quick Reason Chips */}
+            <View style={styles.chipsRow}>
+              {['بيانات غير صحيحة', 'سلوك غير لائق', 'رقم وهمي', 'طلب أموال'].map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={[styles.chip, reportReason === item && styles.chipActive]}
+                  onPress={() => setReportReason(item)}
+                >
+                  <Text style={[styles.chipText, reportReason === item && styles.chipTextActive]}>
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="اكتب تفاصيل البلاغ هنا..."
+              placeholderTextColor="#94A3B8"
+              value={reportReason}
+              onChangeText={setReportReason}
+              multiline
+              numberOfLines={4}
+              textAlign="right"
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setReportModalVisible(false)}
+              >
+                <Text style={styles.cancelBtnText}>إلغاء</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.submitReportBtn}
+                onPress={handleSendReport}
+                disabled={submittingReport}
+              >
+                {submittingReport ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.submitReportBtnText}>إرسال البلاغ الآن</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -464,6 +576,126 @@ const styles = StyleSheet.create({
   unlockFullBtnText: {
     fontSize: 15,
     fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  reportHeaderBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF1F2',
+  },
+  bottomReportLink: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  bottomReportText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#E11D48',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 22,
+    width: '100%',
+    maxWidth: 400,
+    ...SHADOWS.card,
+  },
+  modalHeader: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#2D1B4D',
+  },
+  modalDesc: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#64748B',
+    textAlign: 'right',
+    marginBottom: 14,
+  },
+  chipsRow: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+  },
+  chip: {
+    backgroundColor: '#F8F9FE',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  chipActive: {
+    backgroundColor: '#FFF1F2',
+    borderColor: '#E11D48',
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  chipTextActive: {
+    color: '#E11D48',
+    fontWeight: '800',
+  },
+  modalInput: {
+    backgroundColor: '#F8F9FE',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    padding: 12,
+    fontSize: 13.5,
+    color: '#2D1B4D',
+    minHeight: 90,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: 'row-reverse',
+    gap: 10,
+  },
+  cancelBtn: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  submitReportBtn: {
+    flex: 2,
+    backgroundColor: '#E11D48',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  submitReportBtnText: {
+    fontSize: 13.5,
+    fontWeight: '900',
     color: '#FFFFFF',
   },
 });
