@@ -25,6 +25,11 @@
         "foregroundImage": "./assets/android-icon-foreground.png"
       }
     },
+    "androidNavigationBar": {
+      "visible": "always",
+      "barStyle": "dark-content",
+      "backgroundColor": "#FFFFFF"
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     },

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
 import AdminUsersScreen from '../screens/admin/AdminUsersScreen';
@@ -14,6 +15,12 @@ const Tab = createBottomTabNavigator();
 
 export default function AdminTabNavigator() {
   const { isSuperAdmin } = useAuth();
+  const insets = useSafeAreaInsets();
+
+  // On Android with 3-button system bar, insets.bottom is ~48dp.
+  // We add sufficient bottom padding so the tabs sit completely ABOVE the Android buttons.
+  const bottomInset = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'ios' ? 24 : 14);
+  const tabHeight = 60 + bottomInset;
 
   return (
     <Tab.Navigator
@@ -27,14 +34,14 @@ export default function AdminTabNavigator() {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1.5,
           borderTopColor: '#F1F4F9',
-          height: Platform.OS === 'ios' ? 86 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          height: tabHeight,
+          paddingBottom: bottomInset + 4,
           paddingTop: 8,
-          elevation: 8,
+          elevation: 12,
           shadowColor: '#2D1B4D',
           shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.04,
-          shadowRadius: 8,
+          shadowOpacity: 0.06,
+          shadowRadius: 10,
         },
         tabBarLabelStyle: {
           fontSize: 10.5,

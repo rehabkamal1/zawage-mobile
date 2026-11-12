@@ -7,13 +7,13 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   Alert,
   Image,
   Modal,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { api, getStoredAuthData, saveAuthData } from '../../api/client';
@@ -181,7 +181,7 @@ export default function HomeScreen({ navigation }) {
   const displayedMatches = allMatches.slice(0, visibleCount);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Top Application Bar with Logo & Branding */}
