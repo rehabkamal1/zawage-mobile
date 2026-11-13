@@ -14,8 +14,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../../api/client';
+import { api, getStoredAuthData, API_BASE_URL } from '../../api/client';
 import { APP_CONFIG } from '../../constants/config';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
@@ -106,33 +107,41 @@ export default function SubscriptionScreen({ navigation }) {
 
     setSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append('type', selectedPlan);
-      if (senderWallet.trim()) {
-        formData.append('sender_wallet_number', senderWallet.trim());
-      }
+      const { token } = await getStoredAuthData();
+      const endpoint = `${API_BASE_URL}/subscriptions/manual-transfer`;
 
-      const filename = receiptImage.split('/').pop() || 'receipt.jpg';
-      const match = /\.(\w+)$/.exec(filename);
-      const ext = match ? match[1].toLowerCase() : 'jpg';
-      const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-
-      formData.append('receipt_image', {
-        uri: receiptImage,
-        name: filename,
-        type: mimeType,
+      const uploadResult = await FileSystem.uploadAsync(endpoint, receiptImage, {
+        fieldName: 'receipt_image',
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        parameters: {
+          type: selectedPlan,
+          ...(senderWallet.trim() ? { sender_wallet_number: senderWallet.trim() } : {}),
+        },
       });
 
-      const res = await api.submitManualTransfer(formData, true);
+      let res = {};
+      try {
+        res = uploadResult.body ? JSON.parse(uploadResult.body) : {};
+      } catch (_) {}
 
-      Alert.alert(
-        'تم إرسال إيصال التحويل بنجاح 🎉',
-        res.message || 'طلبك الآن قيد المراجعة والتدقيق من قبل الإدارة، وسيتم تفعيل رصيدك فور مراجعة التحويل.'
-      );
+      if (uploadResult.status >= 200 && uploadResult.status < 300) {
+        Alert.alert(
+          'تم إرسال إيصال التحويل بنجاح 🎉',
+          res.message || 'طلبك الآن قيد المراجعة والتدقيق من قبل الإدارة، وسيتم تفعيل رصيدك فور مراجعة التحويل.'
+        );
 
-      setReceiptImage(null);
-      setSenderWallet('');
-      fetchUserData();
+        setReceiptImage(null);
+        setSenderWallet('');
+        fetchUserData();
+      } else {
+        const errorMsg = res.message || res.error || (res.errors ? Object.values(res.errors)[0]?.[0] : null) || 'حدث خطأ أثناء إرسال الإيصال';
+        Alert.alert('خطأ في إرسال الإيصال', errorMsg);
+      }
     } catch (err) {
       Alert.alert('خطأ في إرسال الإيصال', err.message || 'يرجى التأكد من اتصال الإنترنت والمحاولة مجدداً.');
     } finally {

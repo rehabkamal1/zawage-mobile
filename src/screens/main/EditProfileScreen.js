@@ -195,54 +195,56 @@ export default function EditProfileScreen({ navigation }) {
     setPickerVisible(false);
   };
 
+  const cleanStr = (val) => (val === null || val === undefined ? '' : String(val).trim());
+
   const validateStep = (currentStep) => {
     if (currentStep === 1) {
-      if (!formData.full_name.trim()) {
+      if (!cleanStr(formData.full_name)) {
         Alert.alert('تنبيه', 'يرجى إدخال الاسم بالكامل.');
         return false;
       }
-      if (!formData.phone.trim() || formData.phone.length < 10) {
+      if (!cleanStr(formData.phone) || cleanStr(formData.phone).length < 10) {
         Alert.alert('تنبيه', 'يرجى إدخال رقم هاتف صحيح (11 رقم).');
         return false;
       }
-      if (!formData.marital_status) {
+      if (!cleanStr(formData.marital_status)) {
         Alert.alert('تنبيه', 'يرجى تحديد الحالة الاجتماعية.');
         return false;
       }
-      if (!formData.education.trim()) {
+      if (!cleanStr(formData.education)) {
         Alert.alert('تنبيه', 'يرجى إدخال المؤهل الدراسي.');
         return false;
       }
-      if (!formData.job.trim()) {
+      if (!cleanStr(formData.job)) {
         Alert.alert('تنبيه', 'يرجى إدخال الوظيفة أو كتابة (لا أعمل).');
         return false;
       }
     }
 
     if (currentStep === 2) {
-      if (!formData.governorate.trim()) {
+      if (!cleanStr(formData.governorate)) {
         Alert.alert('تنبيه', 'يرجى اختيار المحافظة.');
         return false;
       }
-      if (!formData.area.trim()) {
+      if (!cleanStr(formData.area)) {
         Alert.alert('تنبيه', 'يرجى إدخال المدينة أو المركز.');
         return false;
       }
-      if (!formData.prayer) {
+      if (!cleanStr(formData.prayer)) {
         Alert.alert('تنبيه', 'يرجى تحديد درجة الالتزام بالصلاة.');
         return false;
       }
       if (isFemale) {
-        if (!formData.hijab) {
+        if (!cleanStr(formData.hijab)) {
           Alert.alert('تنبيه', 'يرجى تحديد نوع الحجاب.');
           return false;
         }
-        if (!formData.guardian_phone.trim() || formData.guardian_phone.length < 10) {
+        if (!cleanStr(formData.guardian_phone) || cleanStr(formData.guardian_phone).length < 10) {
           Alert.alert('تنبيه', 'يرجى إدخال رقم هاتف ولي الأمر (11 رقم).');
           return false;
         }
       } else {
-        if (!formData.smoking) {
+        if (!cleanStr(formData.smoking)) {
           Alert.alert('تنبيه', 'يرجى تحديد الموقف من التدخين.');
           return false;
         }
@@ -269,13 +271,18 @@ export default function EditProfileScreen({ navigation }) {
     try {
       const payload = {
         ...formData,
-        full_name: formData.full_name.trim(),
-        nickname: formData.nickname.trim() || formData.full_name.trim(),
-        phone: formData.phone.trim(),
-        governorate: formData.governorate.trim(),
-        area: formData.area.trim(),
-        education: formData.education.trim(),
-        job: formData.job.trim(),
+        full_name: cleanStr(formData.full_name),
+        nickname: cleanStr(formData.nickname) || cleanStr(formData.full_name),
+        phone: cleanStr(formData.phone),
+        governorate: cleanStr(formData.governorate),
+        area: cleanStr(formData.area),
+        education: cleanStr(formData.education),
+        job: cleanStr(formData.job),
+        address: cleanStr(formData.address) || '',
+        income: cleanStr(formData.income) || '',
+        accommodation: cleanStr(formData.accommodation) || '',
+        bio: cleanStr(formData.bio) || '',
+        skin_tone: cleanStr(formData.skin_tone) || '',
         height: formData.height ? parseInt(formData.height, 10) : null,
         weight: formData.weight ? parseInt(formData.weight, 10) : null,
         req_age_min: formData.req_age_min ? parseInt(formData.req_age_min, 10) : 18,
