@@ -31,36 +31,53 @@ export default function AppNavigator() {
     );
   }
 
+  // 1. Unauthenticated Users -> Auth Flow
+  if (!isAuthenticated) {
+    return (
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="Otp" component={OtpScreen} />
+        <Stack.Screen name="Terms" component={TermsScreen} />
+        <Stack.Screen name="Privacy" component={PrivacyScreen} />
+        <Stack.Screen name="About" component={AboutScreen} />
+        <Stack.Screen name="Contact" component={ContactScreen} />
+      </Stack.Navigator>
+    );
+  }
+
+  // 2. Administrators & Super Admins -> Admin Stack with AdminTabs as primary root
+  if (isAdmin) {
+    return (
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+        <Stack.Screen name="AdminTabs" component={AdminTabNavigator} />
+        <Stack.Screen name="MainTabs" component={TabNavigator} />
+        <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+        <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+        <Stack.Screen name="SubscriptionScreen" component={SubscriptionScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Terms" component={TermsScreen} />
+        <Stack.Screen name="Privacy" component={PrivacyScreen} />
+        <Stack.Screen name="About" component={AboutScreen} />
+        <Stack.Screen name="Contact" component={ContactScreen} />
+      </Stack.Navigator>
+    );
+  }
+
+  // 3. Regular Members (Grooms & Brides) -> Member Stack with MainTabs as primary root
   return (
-    <Stack.Navigator
-      initialRouteName={isAuthenticated ? (isAdmin ? 'AdminTabs' : 'MainTabs') : 'Login'}
-      screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
-    >
-      {isAuthenticated ? (
-        <>
-          <Stack.Screen name="MainTabs" component={TabNavigator} />
-          {isAdmin && <Stack.Screen name="AdminTabs" component={AdminTabNavigator} />}
-          <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
-          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-          <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
-          <Stack.Screen name="SubscriptionScreen" component={SubscriptionScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="Terms" component={TermsScreen} />
-          <Stack.Screen name="Privacy" component={PrivacyScreen} />
-          <Stack.Screen name="About" component={AboutScreen} />
-          <Stack.Screen name="Contact" component={ContactScreen} />
-        </>
-      ) : (
-        <>
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
-          <Stack.Screen name="Otp" component={OtpScreen} />
-          <Stack.Screen name="Terms" component={TermsScreen} />
-          <Stack.Screen name="Privacy" component={PrivacyScreen} />
-          <Stack.Screen name="About" component={AboutScreen} />
-          <Stack.Screen name="Contact" component={ContactScreen} />
-        </>
-      )}
+    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack.Screen name="MainTabs" component={TabNavigator} />
+      <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+      <Stack.Screen name="SubscriptionScreen" component={SubscriptionScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="Terms" component={TermsScreen} />
+      <Stack.Screen name="Privacy" component={PrivacyScreen} />
+      <Stack.Screen name="About" component={AboutScreen} />
+      <Stack.Screen name="Contact" component={ContactScreen} />
     </Stack.Navigator>
   );
 }

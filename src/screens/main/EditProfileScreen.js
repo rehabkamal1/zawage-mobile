@@ -304,7 +304,18 @@ export default function EditProfileScreen({ navigation }) {
         isAlreadyRegistered
           ? 'تم تحديث بيانات استمارتك بنجاح. استمارتك الآن محدثة ومتاحة للمطابقة.'
           : 'تهانينا! تم حفظ استمارة الزواج الشرعي بنجاح وأصبحت مرئية للشريك المناسب.',
-        [{ text: 'حسناً', onPress: () => setIsEditing(false) }]
+        !isFemale
+          ? [
+              {
+                text: 'تصفح العرايس الآن 🌸',
+                onPress: () => {
+                  setIsEditing(false);
+                  navigation.navigate('HomeTab');
+                },
+              },
+              { text: 'حسناً', onPress: () => setIsEditing(false) },
+            ]
+          : [{ text: 'حسناً', onPress: () => setIsEditing(false) }]
       );
     } catch (e) {
       Alert.alert('خطأ في الحفظ', e.message || 'يرجى مراجعة البيانات المدخلة والمحاولة مجدداً.');

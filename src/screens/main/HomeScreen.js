@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,18 +14,15 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { api, getStoredAuthData, saveAuthData } from '../../api/client';
+import { api, saveAuthData } from '../../api/client';
 import PartnerCard from '../../components/PartnerCard';
+import { APP_CONFIG } from '../../constants/config';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
-const GOVERNORATES = [
-  'الكل', 'القاهرة', 'الجيزة', 'الإسكندرية', 'الشرقية', 'الدقهلية', 'القليوبية',
-  'المنوفية', 'الغربية', 'كفر الشيخ', 'البحيرة', 'دمياط', 'بورسعيد', 'الإسماعيلية',
-  'السويس', 'بني سويف', 'الفيوم', 'المنيا', 'أسيوط', 'سوهاج', 'قنا', 'الأقصر', 'أسوان'
-];
-
+const GOVERNORATES = APP_CONFIG.GOVERNORATES;
 const MARITAL_STATUSES = ['الكل', 'آنسة', 'مطلق', 'مطلقة', 'أرمل', 'أرملة'];
 const AGE_RANGES = ['الكل', '18-25', '26-35', '36+'];
 
@@ -37,14 +34,22 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [requiresForm, setRequiresForm] = useState(false);
 
   // Filter States
   const [governorate, setGovernorate] = useState('الكل');
   const [maritalStatus, setMaritalStatus] = useState('الكل');
   const [ageRange, setAgeRange] = useState('الكل');
-
-  // Filter Pickers Modals
   const [activePicker, setActivePicker] = useState(null); // 'gov' | 'status' | 'age' | null
+
+  const isMale = currentUser?.gender === 'male';
+  const isProfileFilled = Boolean(
+    currentUser?.profile &&
+    currentUser.profile.governorate &&
+    currentUser.profile.governorate.trim() !== '' &&
+    currentUser.profile.marital_status &&
+    currentUser.profile.marital_status.trim() !== ''
+  );
 
   // Fetch Current User & Matches
   const fetchData = useCallback(async (currentGov = governorate, currentStatus = maritalStatus, currentAge = ageRange) => {
@@ -54,29 +59,48 @@ export default function HomeScreen({ navigation }) {
       if (currentStatus !== 'الكل') query += `marital_status=${encodeURIComponent(currentStatus)}&`;
       if (currentAge !== 'الكل') query += `age_range=${encodeURIComponent(currentAge)}&`;
 
-      const [matchesRes, meRes, favsRes] = await Promise.all([
-        api.getMatches(query).catch(() => ({ matches: [] })),
+      const [meRes, favsRes] = await Promise.all([
         api.getMe().catch(() => ({ user: null })),
         api.getFavorites().catch(() => ({ favorites: [] })),
       ]);
 
-      const fetchedMatches = matchesRes.matches || matchesRes.data || [];
-      setAllMatches(fetchedMatches);
-      setVisibleCount(6);
-
       if (meRes.user) {
-        const updatedUser = {
-          ...meRes.user,
-          free_views_used: matchesRes.free_views_used ?? meRes.user.free_views_used,
-          free_views_allowed: matchesRes.free_views_allowed ?? meRes.user.free_views_allowed,
-          free_views_remaining: matchesRes.free_views_remaining ?? meRes.user.free_views_remaining,
-        };
-        setCurrentUser(updatedUser);
-        await saveAuthData(null, updatedUser);
+        setCurrentUser(meRes.user);
+        await saveAuthData(null, meRes.user);
       }
 
       const favIds = (favsRes.favorites || favsRes.data || []).map(f => f.id || f.favorite_user_id);
       setFavorites(favIds);
+
+      // Only attempt to fetch matches if user is male
+      if (meRes.user?.gender === 'male') {
+        try {
+          const matchesRes = await api.getMatches(query);
+          const fetchedMatches = matchesRes.matches || matchesRes.data || [];
+          setAllMatches(fetchedMatches);
+          setRequiresForm(false);
+          setVisibleCount(6);
+
+          if (meRes.user) {
+            setCurrentUser(prev => prev ? ({
+              ...prev,
+              free_views_used: matchesRes.free_views_used ?? prev.free_views_used,
+              free_views_allowed: matchesRes.free_views_allowed ?? prev.free_views_allowed,
+              free_views_remaining: matchesRes.free_views_remaining ?? prev.free_views_remaining,
+            }) : prev);
+          }
+        } catch (matchErr) {
+          if (matchErr.status === 403 || matchErr.data?.requires_form) {
+            setRequiresForm(true);
+            setAllMatches([]);
+          } else {
+            setAllMatches([]);
+          }
+        }
+      } else {
+        setAllMatches([]);
+        setRequiresForm(false);
+      }
     } catch (e) {
       console.log('Error fetching home data', e);
     } finally {
@@ -85,9 +109,11 @@ export default function HomeScreen({ navigation }) {
     }
   }, [governorate, maritalStatus, ageRange]);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -110,7 +136,7 @@ export default function HomeScreen({ navigation }) {
 
   const handleToggleFavorite = async (partnerId) => {
     try {
-      const res = await api.toggleFavorite(partnerId);
+      await api.toggleFavorite(partnerId);
       setFavorites(prev =>
         prev.includes(partnerId)
           ? prev.filter(id => id !== partnerId)
@@ -131,29 +157,20 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Unlock Partner Contact
   const handleUnlockContact = (partner) => {
-    const isMale = currentUser?.gender === 'male';
-    const partnerName = partner.profile?.nickname || partner.name;
-
     Alert.alert(
       'فك قفل بيانات التواصل',
-      `هل تود فك قفل استمارة (${partnerName}) للتواصل مع ولي الأمر عبر واتساب؟\nسيتم خصم استمارة واحدة من رصيدك.`,
+      `هل تود فك قفل استمارة (${partner.profile?.nickname || partner.name}) للتواصل مع ولي الأمر عبر واتساب؟`,
       [
         { text: 'إلغاء', style: 'cancel' },
         {
           text: 'تأكيد وفك القفل',
-          style: 'default',
           onPress: async () => {
             try {
               const res = await api.unlockContact(partner.id);
               Alert.alert('تهانينا 🎉', res.message || 'تم فك القفل بنجاح، يمكنك الآن التواصل عبر واتساب.');
-
-              // Update partner in local state
-              setAllMatches(prev => prev.map(p => p.id === partner.id ? { ...p, is_unlocked: true, phone: res.phone || p.phone } : p));
-
-              // Update user quota
-              fetchData(governorate, maritalStatus, ageRange);
+              setAllMatches(prev => prev.map(m => m.id === partner.id ? { ...m, is_unlocked: true, phone: res.phone } : m));
+              fetchData();
             } catch (err) {
               const msg = err.message || 'تعذر فك القفل';
               if (err.data?.requires_subscription || err.data?.limit_reached) {
@@ -175,16 +192,14 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  const isMale = currentUser?.gender === 'male';
-  const freeViewsRemaining = currentUser?.free_views_remaining ?? 3;
-  const activeSub = currentUser?.active_subscription;
   const displayedMatches = allMatches.slice(0, visibleCount);
+  const userName = currentUser?.profile?.nickname || currentUser?.name || '';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Top Application Bar with Logo & Branding */}
+      {/* Top Application Bar */}
       <View style={styles.topNavbar}>
         <View style={styles.topNavBrand}>
           <Image
@@ -204,348 +219,308 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={displayedMatches}
-        keyExtractor={item => String(item.id)}
-        renderItem={({ item }) => (
-          <PartnerCard
-            partner={item}
-            isFavorite={favorites.includes(item.id)}
-            onToggleFavorite={() => handleToggleFavorite(item.id)}
-            onPress={() => navigation.navigate('MatchDetail', { partner: item, currentUser })}
-            onUnlock={() => handleUnlockContact(item)}
-            currentUser={currentUser}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.4}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#E91E63']}
-            tintColor="#E91E63"
-          />
-        }
-        ListHeaderComponent={
-          <View style={styles.headerContainer}>
-            {/* User Greeting Title (Matches Web) */}
-            <Text style={styles.greetingTitle}>
-              {isMale
-                ? `أهلاً ${currentUser?.profile?.nickname || currentUser?.name || 'بك'}، اكتشف شريك حياتك`
-                : `أهلاً ${currentUser?.profile?.nickname || currentUser?.name || 'بك'}، ملفك متاح للبحث`}
+      {loading && !refreshing ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#E91E63" />
+          <Text style={styles.loadingText}>جاري تحميل البيانات...</Text>
+        </View>
+      ) : !isMale ? (
+        // -------------------------------------------------------------------
+        // STATE 1: FEMALE USER (BRIDE) - Announcements & Waiting Mode (Matches Web UserDashboard)
+        // -------------------------------------------------------------------
+        <ScrollView
+          contentContainerStyle={styles.centerCardContainer}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#E91E63']} />}
+        >
+          <View style={styles.brideCard}>
+            <View style={styles.brideIconCircle}>
+              <Ionicons name="heart" size={46} color="#E91E63" />
+            </View>
+            <Text style={styles.brideTitle}>أهلاً بكِ في منصة نصفي الآخر 🌸</Text>
+            <Text style={styles.brideSubtitle}>
+              تم نشر استمارتك ومواصفاتك بنجاح وهي الآن متاحة للعرسان المشتركين الجادين المطابقين لمواصفاتك الشرعية.
+            </Text>
+            <Text style={styles.brideDetails}>
+              عند وجود توافق، سيقوم العريس بفك قفل بيانات التواصل والتواصل مباشرة مع ولي أمرك عبر واتساب.
+              نسأل الله تعالى أن يرزقك الزوج الصالح والذرية المباركة.
             </Text>
 
-            {/* Unified Filter Bar (Matches Web .unified-filter-bar) */}
-            <View style={styles.unifiedFilterBar}>
-              {/* Governorate Dropdown */}
-              <TouchableOpacity
-                style={styles.filterPill}
-                activeOpacity={0.8}
-                onPress={() => setActivePicker('gov')}
-              >
-                <Ionicons name="location-outline" size={17} color="#E91E63" />
-                <View style={styles.filterTextCol}>
-                  <Text style={styles.filterMiniLabel}>المحافظة</Text>
-                  <Text style={styles.filterValueText} numberOfLines={1}>{governorate}</Text>
-                </View>
-                <Ionicons name="chevron-down" size={14} color="#8B94B7" />
-              </TouchableOpacity>
-
-              <View style={styles.filterDivider} />
-
-              {/* Marital Status Dropdown */}
-              <TouchableOpacity
-                style={styles.filterPill}
-                activeOpacity={0.8}
-                onPress={() => setActivePicker('status')}
-              >
-                <Ionicons name="people-outline" size={17} color="#E91E63" />
-                <View style={styles.filterTextCol}>
-                  <Text style={styles.filterMiniLabel}>الحالة</Text>
-                  <Text style={styles.filterValueText} numberOfLines={1}>{maritalStatus}</Text>
-                </View>
-                <Ionicons name="chevron-down" size={14} color="#8B94B7" />
-              </TouchableOpacity>
-
-              <View style={styles.filterDivider} />
-
-              {/* Age Range Dropdown */}
-              <TouchableOpacity
-                style={styles.filterPill}
-                activeOpacity={0.8}
-                onPress={() => setActivePicker('age')}
-              >
-                <Ionicons name="calendar-outline" size={17} color="#E91E63" />
-                <View style={styles.filterTextCol}>
-                  <Text style={styles.filterMiniLabel}>السن</Text>
-                  <Text style={styles.filterValueText} numberOfLines={1}>{ageRange}</Text>
-                </View>
-                <Ionicons name="chevron-down" size={14} color="#8B94B7" />
-              </TouchableOpacity>
+            <View style={styles.brideTipBox}>
+              <Text style={styles.brideTipTitle}>💡 إدارة استمارتك وبياناتك:</Text>
+              <Text style={styles.brideTipText}>
+                يمكنك في أي وقت مراجعة أو تحديث مواصفاتك ومواصفات شريك الحياة المطلوب من تبويب (استمارتي).
+              </Text>
             </View>
 
-            {/* Quota Banner 1: Free Attempts Available */}
-            {isMale && !activeSub && freeViewsRemaining > 0 && (
-              <View style={styles.freeQuotaBanner}>
-                <View style={styles.bannerRow}>
-                  <View style={styles.giftIconCircle}>
-                    <Text style={{ fontSize: 20 }}>🎁</Text>
-                  </View>
-                  <View style={styles.bannerTextCol}>
-                    <Text style={styles.bannerTitle}>
-                      هدية التسجيل: 3 استمارات مجانية 🌸
-                    </Text>
-                    <Text style={styles.bannerSubtitle}>
-                      يظهر لك حالياً أفضل 10 استمارات توافقاً، ومعك 3 محاولات مجانية لفك القفل والتواصل عبر واتساب.
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.quotaPillBadge}>
-                  <Text style={styles.quotaPillText}>
-                    رصيد فك القفل المجاني:{' '}
-                    <Text style={{ color: '#BE123C', fontWeight: '900' }}>
-                      {freeViewsRemaining} من 3 استمارات
-                    </Text>
-                  </Text>
-                </View>
-              </View>
-            )}
+            <TouchableOpacity
+              style={styles.brideActionBtn}
+              onPress={() => navigation.navigate('EditProfileTab')}
+              activeOpacity={0.88}
+            >
+              <Ionicons name="document-text-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Text style={styles.brideActionBtnText}>استعراض وتعديل استمارتي 📝</Text>
+            </TouchableOpacity>
 
-            {/* Quota Banner 2: Free Attempts Exhausted */}
-            {isMale && !activeSub && freeViewsRemaining <= 0 && (
-              <View style={styles.exhaustedQuotaBanner}>
-                <View style={styles.bannerRow}>
-                  <View style={styles.warningIconCircle}>
-                    <Text style={{ fontSize: 20 }}>⚠️</Text>
-                  </View>
-                  <View style={styles.bannerTextCol}>
-                    <Text style={[styles.bannerTitle, { color: '#9F1239' }]}>
-                      انتهت محاولاتك المجانية (3 من 3 استمارات)
-                    </Text>
-                    <Text style={[styles.bannerSubtitle, { color: '#881337' }]}>
-                      لقد استهلكت رصيدك المجاني بالكامل. للاستمرار في فك قفل استمارات جديدة والتواصل، يمكنك الاشتراك في إحدى باقاتنا.
-                    </Text>
-                  </View>
-                </View>
+            <TouchableOpacity
+              style={styles.brideSecondaryBtn}
+              onPress={() => navigation.navigate('Settings')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="settings-outline" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
+              <Text style={styles.brideSecondaryBtnText}>إعدادات الحساب وكلمة المرور ⚙️</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      ) : isMale && (!isProfileFilled || requiresForm) ? (
+        // -------------------------------------------------------------------
+        // STATE 2: MALE USER WITHOUT COMPLETED FORM - Locked Notice (Matches Web UserDashboard)
+        // -------------------------------------------------------------------
+        <ScrollView
+          contentContainerStyle={styles.centerCardContainer}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#E91E63']} />}
+        >
+          <View style={styles.lockNoticeCard}>
+            <View style={styles.lockIconCircle}>
+              <Ionicons name="document-text" size={44} color="#E91E63" />
+            </View>
+
+            <Text style={styles.lockTitle}>يرجى ملء الاستمارة أولاً لتتمكن من تصفح العرايس 📋</Text>
+
+            <Text style={styles.lockDescription}>
+              أهلاً بك{userName ? ` يا ${userName}` : ''}! حرصاً على الجدية التامة ومراعاة الضوابط الشرعية، يشترط إكمال بيانات استمارتك الخاصة (استمارة العريس) أولاً قبل التمكن من رؤية ملفات العرايس ونسب التوافق والبحث.
+            </Text>
+
+            <View style={styles.lockStepsBox}>
+              <Text style={styles.lockStepsTitle}>💡 خطوات بسيطة للبدء:</Text>
+              <Text style={styles.lockStepItem}>1. اضغط على الزر أدناه واملأ بياناتك ومواصفات شريكة حياتك.</Text>
+              <Text style={styles.lockStepItem}>2. بمجرد حفظ الاستمارة، ستظهر لك فوراً جميع ملفات العرايس المتوافقة معك.</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.fillFormBtn}
+              onPress={() => navigation.navigate('EditProfileTab')}
+              activeOpacity={0.88}
+            >
+              <Ionicons name="create-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Text style={styles.fillFormBtnText}>ملء الاستمارة الآن 📝</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      ) : (
+        // -------------------------------------------------------------------
+        // STATE 3: MALE USER WITH COMPLETED FORM - Active Discovery & Matches List
+        // -------------------------------------------------------------------
+        <FlatList
+          data={displayedMatches}
+          keyExtractor={item => String(item.id)}
+          renderItem={({ item }) => (
+            <PartnerCard
+              partner={item}
+              isFavorite={favorites.includes(item.id)}
+              onToggleFavorite={() => handleToggleFavorite(item.id)}
+              onPress={() => navigation.navigate('MatchDetail', { partner: item, currentUser })}
+              onUnlock={() => handleUnlockContact(item)}
+              currentUser={currentUser}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.4}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#E91E63']}
+              tintColor="#E91E63"
+            />
+          }
+          ListHeaderComponent={
+            <View style={styles.headerContainer}>
+              <Text style={styles.greetingTitle}>
+                أهلاً {userName}، اكتشف شريك حياتك 🌟
+              </Text>
+
+              {/* Unified Filter Bar (Matches Web) */}
+              <View style={styles.unifiedFilterBar}>
+                {/* Governorate Dropdown */}
                 <TouchableOpacity
-                  style={styles.subscribeNowBtn}
-                  onPress={() => navigation.navigate('SubscriptionsTab')}
+                  style={styles.filterPill}
+                  activeOpacity={0.8}
+                  onPress={() => setActivePicker('gov')}
                 >
-                  <Ionicons name="card-outline" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
-                  <Text style={styles.subscribeNowText}>اشترك في باقة الآن 🚀</Text>
+                  <Ionicons name="location-outline" size={17} color="#E91E63" />
+                  <View style={styles.filterTextCol}>
+                    <Text style={styles.filterMiniLabel}>المحافظة</Text>
+                    <Text style={styles.filterValueText} numberOfLines={1}>{governorate}</Text>
+                  </View>
+                  <Ionicons name="chevron-down" size={14} color="#8B94B7" />
+                </TouchableOpacity>
+
+                <View style={styles.filterDivider} />
+
+                {/* Marital Status Dropdown */}
+                <TouchableOpacity
+                  style={styles.filterPill}
+                  activeOpacity={0.8}
+                  onPress={() => setActivePicker('status')}
+                >
+                  <Ionicons name="people-outline" size={17} color="#E91E63" />
+                  <View style={styles.filterTextCol}>
+                    <Text style={styles.filterMiniLabel}>الحالة</Text>
+                    <Text style={styles.filterValueText} numberOfLines={1}>{maritalStatus}</Text>
+                  </View>
+                  <Ionicons name="chevron-down" size={14} color="#8B94B7" />
+                </TouchableOpacity>
+
+                <View style={styles.filterDivider} />
+
+                {/* Age Dropdown */}
+                <TouchableOpacity
+                  style={styles.filterPill}
+                  activeOpacity={0.8}
+                  onPress={() => setActivePicker('age')}
+                >
+                  <Ionicons name="calendar-outline" size={17} color="#E91E63" />
+                  <View style={styles.filterTextCol}>
+                    <Text style={styles.filterMiniLabel}>السن</Text>
+                    <Text style={styles.filterValueText} numberOfLines={1}>{ageRange}</Text>
+                  </View>
+                  <Ionicons name="chevron-down" size={14} color="#8B94B7" />
                 </TouchableOpacity>
               </View>
-            )}
 
-            {/* Quota Banner 3: Active Subscription */}
-            {isMale && activeSub && (
-              <View style={styles.activeSubBanner}>
-                <View style={styles.bannerRow}>
-                  <View style={styles.crownIconCircle}>
-                    <Text style={{ fontSize: 20 }}>👑</Text>
-                  </View>
-                  <View style={styles.bannerTextCol}>
-                    <Text style={[styles.bannerTitle, { color: '#2D1B4D' }]}>
-                      باقتك مفعلة بنجاح ✨ (
-                      {activeSub.type === 'daily'
-                        ? 'باقة يومية - 10 استمارات'
-                        : activeSub.type === 'weekly'
-                        ? 'باقة أسبوعية - 20 استمارة'
-                        : 'باقة شهرية - 50 استمارة'}
-                      )
-                    </Text>
-                    <Text style={styles.bannerSubtitle}>
-                      يظهر لك استمارات الشركاء وفقاً لباقاتك، ويمكنك فك قفل استمارات العرايس والتواصل عبر واتساب.
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.quotaPillBadge}>
-                  <Text style={styles.quotaPillText}>
-                    رصيد التواصل المتبقي:{' '}
-                    <Text style={{ color: '#BE123C', fontWeight: '900' }}>
-                      {Math.max(0, (activeSub.views_allowed || 0) - (activeSub.views_used || 0))} استمارة
-                    </Text>
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* Matches Count & Infinite Scroll Indicator (Matches Web) */}
-            {!loading && allMatches.length > 0 && (
-              <View style={styles.countSummaryRow}>
-                <Text style={styles.countSummaryText}>
-                  عرض {Math.min(visibleCount, allMatches.length)} من إجمالي {allMatches.length} استمارة شريك
-                </Text>
-                <View style={styles.infiniteScrollTag}>
-                  <Text style={styles.infiniteScrollTagText}>
-                    {visibleCount < allMatches.length ? 'تمرير تلقائي (Infinite Scroll)' : 'تم تحميل جميع الاستمارات'}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
-        }
-        ListFooterComponent={
-          allMatches.length > 0 ? (
-            <View style={styles.footerContainer}>
-              {visibleCount < allMatches.length ? (
-                loadingMore ? (
-                  <View style={styles.loadingMoreRow}>
-                    <ActivityIndicator size="small" color="#E91E63" />
-                    <Text style={styles.loadingMoreText}>جاري تحميل المزيد من الاستمارات...</Text>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.btnLoadMore}
-                    onPress={() => setVisibleCount(prev => Math.min(prev + 6, allMatches.length))}
-                  >
-                    <Text style={styles.btnLoadMoreText}>
-                      عرض المزيد من الاستمارات ({allMatches.length - visibleCount} متبقية) ⬇️
-                    </Text>
-                  </TouchableOpacity>
-                )
-              ) : (
-                <Text style={styles.allLoadedText}>
-                  ✨ تم استعراض كافة الاستمارات المتاحة ({allMatches.length} استمارة)
-                </Text>
+              {/* Active Filters Reset Pill */}
+              {(governorate !== 'الكل' || maritalStatus !== 'الكل' || ageRange !== 'الكل') && (
+                <TouchableOpacity
+                  style={styles.resetFiltersBtn}
+                  onPress={() => {
+                    setGovernorate('الكل');
+                    setMaritalStatus('الكل');
+                    setAgeRange('الكل');
+                    setLoading(true);
+                    fetchData('الكل', 'الكل', 'الكل');
+                  }}
+                >
+                  <Ionicons name="close-circle" size={15} color="#E11D48" />
+                  <Text style={styles.resetFiltersText}>إعادة ضبط وتصفير الفلاتر</Text>
+                </TouchableOpacity>
               )}
             </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          loading ? (
+          }
+          ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <ActivityIndicator size="large" color="#E91E63" />
-              <Text style={styles.emptyText}>جاري تحميل الشركاء المتوافقين...</Text>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="search" size={38} color="#94A3B8" />
+              </View>
+              <Text style={styles.emptyTitle}>لا توجد نتائج مطابقة لبحثك حالياً</Text>
+              <Text style={styles.emptySubtitle}>
+                جرب تغيير خيارات الفلترة أو اختيار (الكل) في المحافظة والسن لعرض كافة العرايس المتاحة.
+              </Text>
             </View>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="search" size={44} color="#CBD5E1" />
-              <Text style={styles.emptyText}>لا يوجد شركاء متاحين حالياً يطابقون بحثك.</Text>
-            </View>
-          )
-        }
-      />
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color="#E91E63" />
+                <Text style={styles.footerLoaderText}>جاري تحميل المزيد...</Text>
+              </View>
+            ) : null
+          }
+        />
+      )}
 
-      {/* Filter Selection Modal Sheet */}
+      {/* Filter Bottom Sheet / Modal */}
       <Modal
         visible={activePicker !== null}
-        animationType="slide"
         transparent
+        animationType="slide"
         onRequestClose={() => setActivePicker(null)}
       >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setActivePicker(null)}
-        >
-          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>
-              {activePicker === 'gov' ? 'اختر المحافظة' : activePicker === 'status' ? 'اختر الحالة الاجتماعية' : 'اختر السن'}
-            </Text>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setActivePicker(null)}>
+                <Ionicons name="close-circle-outline" size={26} color="#8B94B7" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>
+                {activePicker === 'gov' ? 'اختر المحافظة' : activePicker === 'status' ? 'اختر الحالة الاجتماعية' : 'اختر الفئة العمرية'}
+              </Text>
+            </View>
 
-            <ScrollView style={{ maxHeight: 340 }}>
-              {(activePicker === 'gov'
-                ? GOVERNORATES
-                : activePicker === 'status'
-                ? MARITAL_STATUSES
-                : AGE_RANGES
-              ).map(item => {
-                const isSelected =
-                  activePicker === 'gov'
-                    ? governorate === item
-                    : activePicker === 'status'
-                    ? maritalStatus === item
-                    : ageRange === item;
-
-                return (
-                  <TouchableOpacity
-                    key={item}
-                    style={[styles.modalOption, isSelected && styles.modalOptionActive]}
-                    onPress={() => handleApplyFilter(activePicker, item)}
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              {(activePicker === 'gov' ? GOVERNORATES : activePicker === 'status' ? MARITAL_STATUSES : AGE_RANGES).map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={[
+                    styles.modalOption,
+                    (activePicker === 'gov' ? governorate : activePicker === 'status' ? maritalStatus : ageRange) === item && styles.modalOptionActive,
+                  ]}
+                  onPress={() => handleApplyFilter(activePicker, item)}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      (activePicker === 'gov' ? governorate : activePicker === 'status' ? maritalStatus : ageRange) === item && styles.modalOptionTextActive,
+                    ]}
                   >
-                    <Text style={[styles.modalOptionText, isSelected && styles.modalOptionTextActive]}>
-                      {item}
-                    </Text>
-                    {isSelected && <Ionicons name="checkmark-circle" size={18} color="#E91E63" />}
-                  </TouchableOpacity>
-                );
-              })}
+                    {item}
+                  </Text>
+                  {(activePicker === 'gov' ? governorate : activePicker === 'status' ? maritalStatus : ageRange) === item && (
+                    <Ionicons name="checkmark-circle" size={18} color="#E91E63" />
+                  )}
+                </TouchableOpacity>
+              ))}
             </ScrollView>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F8F9FE',
-  },
+  safeArea: { flex: 1, backgroundColor: '#F8F9FE' },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  loadingText: { marginTop: 12, fontSize: 13.5, fontWeight: '700', color: '#64748B' },
   topNavbar: {
-    backgroundColor: '#FFFFFF',
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F1F4F9',
   },
-  topNavBrand: {
-    flexDirection: 'row-reverse',
+  topNavBrand: { flexDirection: 'row-reverse', alignItems: 'center' },
+  navLogo: { width: 34, height: 34, marginLeft: 8 },
+  navBrandText: { fontSize: 17, fontWeight: '900', color: '#2D1B4D' },
+  navBookmarkBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#F8F9FE',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  navLogo: {
-    width: 32,
-    height: 32,
-    marginLeft: 8,
-  },
-  navBrandText: {
+  listContent: { padding: 16, paddingBottom: 40 },
+  headerContainer: { marginBottom: 14 },
+  greetingTitle: {
     fontSize: 18,
     fontWeight: '900',
     color: '#2D1B4D',
-    letterSpacing: -0.3,
-  },
-  navBookmarkBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8F9FE',
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  headerContainer: {
-    marginBottom: 8,
-  },
-  greetingTitle: {
-    fontSize: 18.5,
-    fontWeight: '900',
-    color: '#2D1B4D',
     textAlign: 'right',
-    marginBottom: 16,
-    letterSpacing: -0.3,
+    marginBottom: 12,
   },
   unifiedFilterBar: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: '#E8ECF4',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
     flexDirection: 'row-reverse',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#F1F4F9',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     ...SHADOWS.small,
   },
   filterPill: {
@@ -553,245 +528,155 @@ const styles = StyleSheet.create({
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-  },
-  filterTextCol: {
-    alignItems: 'flex-end',
-  },
-  filterMiniLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#8B94B7',
-  },
-  filterValueText: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: '#2D1B4D',
-    maxWidth: 68,
-  },
-  filterDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: '#E8ECF4',
-    marginHorizontal: 4,
-  },
-  freeQuotaBanner: {
-    backgroundColor: '#FFF0F5',
-    borderWidth: 1.5,
-    borderColor: '#FBCFE8',
-    borderRadius: 20,
-    padding: 14,
-    marginBottom: 16,
-    ...SHADOWS.small,
-  },
-  exhaustedQuotaBanner: {
-    backgroundColor: '#FFF1F2',
-    borderWidth: 2,
-    borderColor: '#F43F5E',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-  },
-  activeSubBanner: {
-    backgroundColor: '#FAF5FF',
-    borderWidth: 1.5,
-    borderColor: '#F3C4D8',
-    borderRadius: 20,
-    padding: 14,
-    marginBottom: 16,
-    ...SHADOWS.small,
-  },
-  bannerRow: {
-    flexDirection: 'row-reverse',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 10,
-  },
-  giftIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOWS.small,
-  },
-  warningIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFE4E6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  crownIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FDF2F8',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bannerTextCol: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  bannerTitle: {
-    fontSize: 13.5,
-    fontWeight: '900',
-    color: '#2D1B4D',
-    textAlign: 'right',
-    marginBottom: 3,
-  },
-  bannerSubtitle: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: '#64748B',
-    textAlign: 'right',
-    lineHeight: 17,
-  },
-  quotaPillBadge: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#FBCFE8',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 16,
-  },
-  quotaPillText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#E91E63',
-  },
-  subscribeNowBtn: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E11D48',
-    paddingVertical: 10,
-    borderRadius: 14,
-    marginTop: 6,
-  },
-  subscribeNowText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  countSummaryRow: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
+    paddingVertical: 6,
     paddingHorizontal: 4,
   },
-  countSummaryText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  infiniteScrollTag: {
-    backgroundColor: '#FFF0F5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  infiniteScrollTagText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#E91E63',
-  },
-  footerContainer: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingMoreRow: {
+  filterTextCol: { flex: 1, alignItems: 'flex-end', marginHorizontal: 4 },
+  filterMiniLabel: { fontSize: 9.5, fontWeight: '700', color: '#8B94B7' },
+  filterValueText: { fontSize: 11.5, fontWeight: '800', color: '#2D1B4D' },
+  filterDivider: { width: 1, height: 26, backgroundColor: '#E2E8F0' },
+  resetFiltersBtn: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
-    gap: 8,
+    alignSelf: 'flex-end',
+    backgroundColor: '#FFF1F2',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginTop: 8,
+    gap: 4,
   },
-  loadingMoreText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#E91E63',
-  },
-  btnLoadMore: {
-    backgroundColor: '#FFF0F5',
+  resetFiltersText: { fontSize: 11.5, fontWeight: '800', color: '#E11D48' },
+
+  // Center Notice Cards (Bride & Incomplete Groom)
+  centerCardContainer: { padding: 20, flexGrow: 1, justifyContent: 'center' },
+  brideCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 24,
+    alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#E91E63',
-    paddingHorizontal: 20,
-    paddingVertical: 9,
-    borderRadius: 22,
+    borderColor: '#FFE4E6',
+    ...SHADOWS.card,
   },
-  btnLoadMoreText: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: '#E91E63',
-  },
-  allLoadedText: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: '#94A3B8',
-  },
-  emptyContainer: {
+  brideIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFF0F5',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#8B94B7',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 20,
-    paddingBottom: 36,
-  },
-  modalHandle: {
-    width: 44,
-    height: 5,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 3,
-    alignSelf: 'center',
     marginBottom: 16,
   },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#2D1B4D',
-    textAlign: 'center',
-    marginBottom: 14,
+  brideTitle: { fontSize: 20, fontWeight: '900', color: '#BE123C', textAlign: 'center', marginBottom: 10 },
+  brideSubtitle: { fontSize: 13.5, lineHeight: 22, color: '#475569', textAlign: 'center', fontWeight: '700', marginBottom: 10 },
+  brideDetails: { fontSize: 12.5, lineHeight: 20, color: '#64748B', textAlign: 'center', fontWeight: '600', marginBottom: 16 },
+  brideTipBox: {
+    backgroundColor: '#FFF5F8',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#F472B6',
+    borderRadius: 16,
+    padding: 14,
+    width: '100%',
+    marginBottom: 20,
+    alignItems: 'flex-end',
   },
-  modalOption: {
+  brideTipTitle: { fontSize: 12.5, fontWeight: '800', color: '#BE123C', marginBottom: 4, textAlign: 'right' },
+  brideTipText: { fontSize: 12, lineHeight: 18, color: '#475569', textAlign: 'right', fontWeight: '600' },
+  brideActionBtn: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    backgroundColor: '#E91E63',
+    borderRadius: 18,
+    paddingVertical: 14,
+    width: '100%',
+    marginBottom: 10,
+    ...SHADOWS.small,
+  },
+  brideActionBtnText: { fontSize: 14.5, fontWeight: '900', color: '#FFFFFF' },
+  brideSecondaryBtn: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8F9FE',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 18,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    marginBottom: 4,
+    width: '100%',
   },
-  modalOptionActive: {
+  brideSecondaryBtnText: { fontSize: 13, fontWeight: '800', color: '#2D1B4D' },
+
+  // Lock Notice Card for Groom
+  lockNoticeCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFE4E6',
+    ...SHADOWS.card,
+  },
+  lockIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#FFF0F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
-  modalOptionText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#2D1B4D',
+  lockTitle: { fontSize: 19, fontWeight: '900', color: '#2D1B4D', textAlign: 'center', marginBottom: 12 },
+  lockDescription: { fontSize: 13.5, lineHeight: 22, color: '#475569', textAlign: 'center', fontWeight: '600', marginBottom: 18 },
+  lockStepsBox: {
+    backgroundColor: '#FFF5F8',
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#F472B6',
+    borderRadius: 18,
+    padding: 16,
+    width: '100%',
+    marginBottom: 22,
+    alignItems: 'flex-end',
   },
-  modalOptionTextActive: {
-    color: '#E91E63',
-    fontWeight: '900',
+  lockStepsTitle: { fontSize: 13, fontWeight: '900', color: '#BE123C', marginBottom: 8, textAlign: 'right' },
+  lockStepItem: { fontSize: 12.5, lineHeight: 20, color: '#475569', textAlign: 'right', fontWeight: '700', marginBottom: 4 },
+  fillFormBtn: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E91E63',
+    borderRadius: 18,
+    paddingVertical: 15,
+    width: '100%',
+    ...SHADOWS.small,
   },
+  fillFormBtnText: { fontSize: 15, fontWeight: '900', color: '#FFFFFF' },
+
+  emptyContainer: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 },
+  emptyIconCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyTitle: { fontSize: 16, fontWeight: '900', color: '#2D1B4D', marginBottom: 6 },
+  emptySubtitle: { fontSize: 13, color: '#64748B', textAlign: 'center', lineHeight: 20 },
+  footerLoader: { flexDirection: 'row-reverse', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 8 },
+  footerLoaderText: { fontSize: 12.5, color: '#8B94B7', fontWeight: '700' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '65%' },
+  modalHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  modalTitle: { fontSize: 16, fontWeight: '900', color: '#2D1B4D' },
+  modalScroll: { maxHeight: 350 },
+  modalOption: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F8F9FE' },
+  modalOptionActive: { backgroundColor: '#FFF0F5', borderRadius: 10, paddingHorizontal: 10 },
+  modalOptionText: { fontSize: 14, fontWeight: '700', color: '#2D1B4D' },
+  modalOptionTextActive: { color: '#E91E63', fontWeight: '900' },
 });

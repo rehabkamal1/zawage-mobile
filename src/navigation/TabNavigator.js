@@ -7,12 +7,15 @@ import HomeScreen from '../screens/main/HomeScreen';
 import FavoritesScreen from '../screens/main/FavoritesScreen';
 import EditProfileScreen from '../screens/main/EditProfileScreen';
 import SubscriptionScreen from '../screens/main/SubscriptionScreen';
+import ProfileScreen from '../screens/main/ProfileScreen';
 import MoreScreen from '../screens/main/MoreScreen';
+import { useAuth } from '../context/AuthContext';
 import { COLORS } from '../constants/theme';
 
 const Tab = createBottomTabNavigator();
 
 export default function TabNavigator() {
+  const { isMale } = useAuth();
   const insets = useSafeAreaInsets();
 
   // On Android with 3-button system bar, insets.bottom is ~48dp.
@@ -50,13 +53,15 @@ export default function TabNavigator() {
           let iconName;
 
           if (route.name === 'HomeTab') {
-            iconName = focused ? 'search' : 'search-outline';
+            iconName = focused ? (isMale ? 'search' : 'heart') : (isMale ? 'search-outline' : 'heart-outline');
           } else if (route.name === 'FavoritesTab') {
             iconName = focused ? 'heart' : 'heart-outline';
           } else if (route.name === 'EditProfileTab') {
             iconName = focused ? 'document-text' : 'document-text-outline';
           } else if (route.name === 'SubscriptionsTab') {
             iconName = focused ? 'card' : 'card-outline';
+          } else if (route.name === 'ProfileTab') {
+            iconName = focused ? 'person' : 'person-outline';
           } else if (route.name === 'MoreTab') {
             iconName = focused ? 'ellipsis-horizontal' : 'ellipsis-horizontal-outline';
           }
@@ -70,21 +75,35 @@ export default function TabNavigator() {
         component={HomeScreen}
         options={{ tabBarLabel: 'الرئيسية' }}
       />
-      <Tab.Screen
-        name="FavoritesTab"
-        component={FavoritesScreen}
-        options={{ tabBarLabel: 'المفضلات' }}
-      />
+
+      {isMale && (
+        <Tab.Screen
+          name="FavoritesTab"
+          component={FavoritesScreen}
+          options={{ tabBarLabel: 'المفضلات' }}
+        />
+      )}
+
       <Tab.Screen
         name="EditProfileTab"
         component={EditProfileScreen}
         options={{ tabBarLabel: 'استمارتي' }}
       />
-      <Tab.Screen
-        name="SubscriptionsTab"
-        component={SubscriptionScreen}
-        options={{ tabBarLabel: 'الاشتراكات' }}
-      />
+
+      {isMale ? (
+        <Tab.Screen
+          name="SubscriptionsTab"
+          component={SubscriptionScreen}
+          options={{ tabBarLabel: 'الاشتراكات' }}
+        />
+      ) : (
+        <Tab.Screen
+          name="ProfileTab"
+          component={ProfileScreen}
+          options={{ tabBarLabel: 'حسابي' }}
+        />
+      )}
+
       <Tab.Screen
         name="MoreTab"
         component={MoreScreen}
