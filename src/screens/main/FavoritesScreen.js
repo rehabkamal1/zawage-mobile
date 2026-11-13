@@ -30,9 +30,9 @@ export default function FavoritesScreen({ navigation }) {
   const isProfileFilled = Boolean(
     currentUser?.profile &&
     currentUser.profile.governorate &&
-    currentUser.profile.governorate.trim() !== '' &&
+    String(currentUser.profile.governorate).trim() !== '' &&
     currentUser.profile.marital_status &&
-    currentUser.profile.marital_status.trim() !== ''
+    String(currentUser.profile.marital_status).trim() !== ''
   );
 
   const fetchFavorites = useCallback(async () => {
@@ -48,9 +48,9 @@ export default function FavoritesScreen({ navigation }) {
       const formFilled = Boolean(
         activeUser?.profile &&
         activeUser.profile.governorate &&
-        activeUser.profile.governorate.trim() !== '' &&
+        String(activeUser.profile.governorate).trim() !== '' &&
         activeUser.profile.marital_status &&
-        activeUser.profile.marital_status.trim() !== ''
+        String(activeUser.profile.marital_status).trim() !== ''
       );
 
       if (userIsMale && !formFilled) {

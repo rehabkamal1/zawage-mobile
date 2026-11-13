@@ -133,6 +133,32 @@ export default function AdminUsersScreen({ navigation }) {
     }
   };
 
+  const handleChangeGender = (targetUser) => {
+    const nextGender = targetUser.gender === 'male' ? 'female' : 'male';
+    const nextLabel = nextGender === 'male' ? 'عريس' : 'عروسة';
+    Alert.alert(
+      'تحويل نوع الحساب / الاستمارة',
+      `هل تود بالتأكيد تحويل حساب [${targetUser.name}] إلى (${nextLabel})؟`,
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: `تحويل إلى ${nextLabel}`,
+          onPress: async () => {
+            try {
+              const res = await api.updateAdminUser(targetUser.id, { gender: nextGender });
+              Alert.alert('تم بنجاح 🎉', res.message || `تم تحويل الحساب إلى (${nextLabel}) بنجاح.`);
+              setUsers(prev =>
+                prev.map(u => (u.id === targetUser.id ? { ...u, gender: nextGender } : u))
+              );
+            } catch (err) {
+              Alert.alert('خطأ', err.message || 'تعذر تعديل نوع الحساب.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderUserItem = ({ item }) => {
     const isBanned = Boolean(item.is_banned);
     const roleBadge = item.role === 'super_admin' ? '👑 سوبر أدمن' : item.role === 'admin' ? '🛡️ مشرف' : 'عضو';
@@ -188,16 +214,44 @@ export default function AdminUsersScreen({ navigation }) {
           </TouchableOpacity>
 
           {isSuperAdmin && (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.actionBtnRole]}
-              onPress={() => {
-                setSelectedUser(item);
-                setShowRoleModal(true);
-              }}
-            >
-              <Ionicons name="shield-outline" size={16} color="#2D1B4D" />
-              <Text style={[styles.actionBtnText, { color: '#2D1B4D' }]}>الصلاحية</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={[
+                  styles.actionBtn,
+                  {
+                    backgroundColor: item.gender === 'male' ? '#FDF2F8' : '#EFF6FF',
+                    borderColor: item.gender === 'male' ? '#FBCFE8' : '#BAE6FD',
+                    borderWidth: 1,
+                  },
+                ]}
+                onPress={() => handleChangeGender(item)}
+              >
+                <Ionicons
+                  name={item.gender === 'male' ? 'woman-outline' : 'man-outline'}
+                  size={16}
+                  color={item.gender === 'male' ? '#DB2777' : '#0284C7'}
+                />
+                <Text
+                  style={[
+                    styles.actionBtnText,
+                    { color: item.gender === 'male' ? '#DB2777' : '#0284C7' },
+                  ]}
+                >
+                  {item.gender === 'male' ? 'لعروسة' : 'لعريس'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.actionBtnRole]}
+                onPress={() => {
+                  setSelectedUser(item);
+                  setShowRoleModal(true);
+                }}
+              >
+                <Ionicons name="shield-outline" size={16} color="#2D1B4D" />
+                <Text style={[styles.actionBtnText, { color: '#2D1B4D' }]}>الصلاحية</Text>
+              </TouchableOpacity>
+            </>
           )}
 
           <TouchableOpacity

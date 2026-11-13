@@ -126,16 +126,6 @@ export default function AdminSettingsScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Switch to Member App */}
-        <TouchableOpacity
-          style={styles.switchMemberBtn}
-          onPress={() => navigation.navigate('MainTabs')}
-          activeOpacity={0.88}
-        >
-          <Ionicons name="arrow-back-outline" size={19} color="#2D1B4D" style={{ marginLeft: 6 }} />
-          <Text style={styles.switchMemberBtnText}>الانتقال إلى واجهة تصفح الأعضاء (كمشترك)</Text>
-        </TouchableOpacity>
-
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutBtn} onPress={logout} activeOpacity={0.88}>
           <Ionicons name="log-out-outline" size={20} color="#E11D48" style={{ marginLeft: 6 }} />

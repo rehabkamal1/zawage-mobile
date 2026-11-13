@@ -46,9 +46,10 @@ export default function HomeScreen({ navigation }) {
   const isProfileFilled = Boolean(
     currentUser?.profile &&
     currentUser.profile.governorate &&
-    currentUser.profile.governorate.trim() !== '' &&
+    String(currentUser.profile.governorate).trim() !== '' &&
     currentUser.profile.marital_status &&
-    currentUser.profile.marital_status.trim() !== ''
+    String(currentUser.profile.marital_status).trim() !== '' &&
+    (!isMale ? (currentUser.profile.guardian_phone && String(currentUser.profile.guardian_phone).trim() !== '') : true)
   );
 
   // Fetch Current User & Matches
@@ -224,9 +225,47 @@ export default function HomeScreen({ navigation }) {
           <ActivityIndicator size="large" color="#E91E63" />
           <Text style={styles.loadingText}>جاري تحميل البيانات...</Text>
         </View>
-      ) : !isMale ? (
+      ) : !isMale && !isProfileFilled ? (
         // -------------------------------------------------------------------
-        // STATE 1: FEMALE USER (BRIDE) - Announcements & Waiting Mode (Matches Web UserDashboard)
+        // STATE 1A: FEMALE USER (BRIDE) - Incomplete Form
+        // -------------------------------------------------------------------
+        <ScrollView
+          contentContainerStyle={styles.centerCardContainer}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#E91E63']} />}
+        >
+          <View style={styles.lockNoticeCard}>
+            <View style={styles.lockIconCircle}>
+              <Ionicons name="document-text" size={44} color="#E91E63" />
+            </View>
+
+            <Text style={styles.lockTitle}>يرجى ملء استمارتك أولاً لنشر ملفك للعرسان 📋</Text>
+
+            <Text style={styles.lockDescription}>
+              أهلاً بكِ في منصة نصفي الآخر 🌸 لقد قمتِ بإنشاء حسابك بنجاح كعروسة، ولكن لكي يتم نشر مواصفاتك وتظهر للعرسان المشتركين الجادين وفقاً للضوابط الشرعية، يجب عليكِ ملء بيانات استمارتك (استمارة العروسة) وتحديد بيانات ولي الأمر أولاً.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.fillFormBtn}
+              onPress={() => navigation.navigate('EditProfileTab')}
+              activeOpacity={0.88}
+            >
+              <Ionicons name="create-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Text style={styles.fillFormBtnText}>ملء استمارة العروسة الآن 📝</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.brideSecondaryBtn}
+              onPress={() => navigation.navigate('Settings')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="settings-outline" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
+              <Text style={styles.brideSecondaryBtnText}>إعدادات الحساب وكلمة المرور ⚙️</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      ) : !isMale && isProfileFilled ? (
+        // -------------------------------------------------------------------
+        // STATE 1B: FEMALE USER (BRIDE) - Complete Form (Published)
         // -------------------------------------------------------------------
         <ScrollView
           contentContainerStyle={styles.centerCardContainer}

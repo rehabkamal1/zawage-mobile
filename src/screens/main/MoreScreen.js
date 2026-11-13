@@ -16,6 +16,7 @@ import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function MoreScreen({ navigation }) {
   const { user, isAdmin, isSuperAdmin, logout } = useAuth();
+  const isMale = user?.gender === 'male';
 
   const handleLogout = () => {
     Alert.alert(
@@ -55,14 +56,19 @@ export default function MoreScreen({ navigation }) {
       bgColor: '#EEF2FF',
       onPress: () => navigation.navigate('Settings'),
     },
-    {
-      id: 'subscriptions',
-      title: 'باقات الاشتراك والتجديد (فودافون كاش)',
-      icon: 'card-outline',
-      color: '#8B5CF6',
-      bgColor: '#F5F3FF',
-      onPress: () => navigation.navigate('SubscriptionsTab'),
-    },
+    // Subscriptions only apply to grooms (male) - brides are completely free
+    ...(isMale
+      ? [
+          {
+            id: 'subscriptions',
+            title: 'باقات الاشتراك والتجديد (فودافون كاش)',
+            icon: 'card-outline',
+            color: '#8B5CF6',
+            bgColor: '#F5F3FF',
+            onPress: () => navigation.navigate('SubscriptionsTab'),
+          },
+        ]
+      : []),
     {
       id: 'form',
       title: 'استمارة الزواج الشرعي (تعديل)',
@@ -71,14 +77,19 @@ export default function MoreScreen({ navigation }) {
       bgColor: '#F0F9FF',
       onPress: () => navigation.navigate('EditProfileTab'),
     },
-    {
-      id: 'favorites',
-      title: 'قائمة الشركاء المفضلة',
-      icon: 'heart-outline',
-      color: '#E11D48',
-      bgColor: '#FFF1F2',
-      onPress: () => navigation.navigate('FavoritesTab'),
-    },
+    // Favorites only apply to grooms browsing brides
+    ...(isMale
+      ? [
+          {
+            id: 'favorites',
+            title: 'قائمة الشركاء المفضلة',
+            icon: 'heart-outline',
+            color: '#E11D48',
+            bgColor: '#FFF1F2',
+            onPress: () => navigation.navigate('FavoritesTab'),
+          },
+        ]
+      : []),
     {
       id: 'contact',
       title: 'اتصل بنا والدعم الفني عبر واتساب',

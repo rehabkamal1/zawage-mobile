@@ -14,9 +14,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function AdminFormsScreen({ navigation }) {
+  const { isSuperAdmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [filteredProfiles, setFilteredProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,35 @@ export default function AdminFormsScreen({ navigation }) {
       setFilteredProfiles(users.filter(u => u.gender === genderFilter));
     }
   }, [genderFilter, users]);
+
+  const handleConvertGender = (profileItem) => {
+    const targetId = profileItem.id;
+    const nextGender = profileItem.gender === 'male' ? 'female' : 'male';
+    const nextLabel = nextGender === 'male' ? 'عريس' : 'عروسة';
+    Alert.alert(
+      'تحويل نوع الاستمارة',
+      `هل تود بالتأكيد تحويل استمارة (${profileItem.profile?.nickname || profileItem.name}) من (${profileItem.gender === 'male' ? 'عريس' : 'عروسة'}) إلى (${nextLabel})؟`,
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: `نعم، تحويل إلى ${nextLabel}`,
+          onPress: async () => {
+            try {
+              const res = await api.updateAdminUser(targetId, { gender: nextGender });
+              Alert.alert('تم بنجاح 🎉', res.message || `تم تحويل الاستمارة إلى (${nextLabel}) بنجاح.`);
+              setUsers(prev => prev.map(u => (u.id === targetId ? { ...u, gender: nextGender } : u)));
+              setFilteredProfiles(prev => prev.map(u => (u.id === targetId ? { ...u, gender: nextGender } : u)));
+              if (selectedProfile?.id === targetId) {
+                setSelectedProfile(prev => ({ ...prev, gender: nextGender }));
+              }
+            } catch (err) {
+              Alert.alert('خطأ', err.message || 'تعذر تحويل نوع الاستمارة.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const renderProfileItem = ({ item }) => {
     const p = item.profile || {};
@@ -194,6 +225,35 @@ export default function AdminFormsScreen({ navigation }) {
                   </>
                 ) : null}
 
+                {isSuperAdmin && (
+                  <TouchableOpacity
+                    style={[
+                      styles.convertBtn,
+                      {
+                        backgroundColor: selectedProfile.gender === 'male' ? '#FDF2F8' : '#EFF6FF',
+                        borderColor: selectedProfile.gender === 'male' ? '#FBCFE8' : '#BAE6FD',
+                      },
+                    ]}
+                    onPress={() => handleConvertGender(selectedProfile)}
+                  >
+                    <Ionicons
+                      name="swap-horizontal"
+                      size={18}
+                      color={selectedProfile.gender === 'male' ? '#DB2777' : '#0284C7'}
+                    />
+                    <Text
+                      style={[
+                        styles.convertBtnText,
+                        { color: selectedProfile.gender === 'male' ? '#DB2777' : '#0284C7' },
+                      ]}
+                    >
+                      {selectedProfile.gender === 'male'
+                        ? '🔄 تحويل الاستمارة إلى عروسة 🌸'
+                        : '🔄 تحويل الاستمارة إلى عريس 👔'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 <TouchableOpacity
                   style={styles.doneBtn}
                   onPress={() => setSelectedProfile(null)}
@@ -334,12 +394,26 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   quoteText: { fontSize: 12.5, lineHeight: 20, color: '#475569', textAlign: 'right' },
+  convertBtn: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    marginTop: 18,
+    gap: 8,
+  },
+  convertBtnText: {
+    fontSize: 13.5,
+    fontWeight: '800',
+  },
   doneBtn: {
     backgroundColor: '#E91E63',
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 10,
   },
   doneBtnText: { fontSize: 15, fontWeight: '900', color: '#FFFFFF' },
 });
