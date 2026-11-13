@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Modal,
   Image,
   TextInput,
@@ -16,10 +15,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api, API_BASE_URL } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function AdminPaymentsScreen({ navigation }) {
   const { isSuperAdmin } = useAuth();
+  const { showConfirm, showSuccess, showError, showWarning } = useAlert();
   const [payments, setPayments] = useState([]);
   const [filteredPayments, setFilteredPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,11 +40,11 @@ export default function AdminPaymentsScreen({ navigation }) {
       const list = data.payments || [];
       setPayments(list);
     } catch (e) {
-      Alert.alert('خطأ', e.message || 'تعذر جلب إيصالات الدفع');
+      showError('خطأ', e.message || 'تعذر جلب إيصالات الدفع');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showError]);
 
   useEffect(() => {
     fetchPayments();
@@ -58,40 +59,37 @@ export default function AdminPaymentsScreen({ navigation }) {
   }, [statusFilter, payments]);
 
   const handleApprove = (payment) => {
-    Alert.alert(
-      'تأكيد اعتماد الدفع',
-      `هل تود تفعيل باقة (${payment.subscription?.type || 'المختارة'}) للمشترك [${payment.user?.name}]؟`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'اعتماد وتفعيل',
-          style: 'default',
-          onPress: async () => {
-            try {
-              const res = await api.approvePayment(payment.id);
-              Alert.alert('تم بنجاح 🎉', res.message || 'تم اعتماد الدفع وتفعيل الباقة بنجاح!');
-              setPayments(prev =>
-                prev.map(p => (p.id === payment.id ? { ...p, status: 'completed' } : p))
-              );
-            } catch (err) {
-              Alert.alert('خطأ', err.message || 'تعذر اعتماد الدفع.');
-            }
-          },
-        },
-      ]
-    );
+    showConfirm({
+      type: 'question',
+      title: 'تأكيد اعتماد الدفع',
+      message: `هل تود تفعيل باقة (${payment.subscription?.type || 'المختارة'}) للمشترك [${payment.user?.name}]؟`,
+      confirmText: 'اعتماد وتفعيل الباقة',
+      cancelText: 'إلغاء',
+      confirmButtonColor: '#10B981',
+      onConfirm: async () => {
+        try {
+          const res = await api.approvePayment(payment.id);
+          showSuccess('تم بنجاح 🎉', res.message || 'تم اعتماد الدفع وتفعيل الباقة بنجاح!');
+          setPayments(prev =>
+            prev.map(p => (p.id === payment.id ? { ...p, status: 'completed' } : p))
+          );
+        } catch (err) {
+          showError('خطأ', err.message || 'تعذر اعتماد الدفع.');
+        }
+      },
+    });
   };
 
   const handleConfirmReject = async () => {
     if (!rejectionReason.trim()) {
-      Alert.alert('تنبيه', 'يرجى كتابة سبب رفض الإيصال للمشترك.');
+      showWarning('تنبيه', 'يرجى كتابة سبب رفض الإيصال للمشترك.');
       return;
     }
 
     setSubmittingReject(true);
     try {
       const res = await api.rejectPayment(rejectingPayment.id, rejectionReason.trim());
-      Alert.alert('تم الرفض', res.message || 'تم رفض الإيصال بنجاح.');
+      showSuccess('تم الرفض', res.message || 'تم رفض الإيصال بنجاح.');
       setPayments(prev =>
         prev.map(p =>
           p.id === rejectingPayment.id
@@ -102,7 +100,7 @@ export default function AdminPaymentsScreen({ navigation }) {
       setRejectingPayment(null);
       setRejectionReason('');
     } catch (err) {
-      Alert.alert('خطأ', err.message || 'تعذر رفض الإيصال.');
+      showError('خطأ', err.message || 'تعذر رفض الإيصال.');
     } finally {
       setSubmittingReject(false);
     }

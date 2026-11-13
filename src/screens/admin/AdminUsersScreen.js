@@ -7,23 +7,25 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Modal,
+  ScrollView,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function AdminUsersScreen({ navigation }) {
   const { user: currentAdmin, isSuperAdmin } = useAuth();
+  const { showConfirm, showSuccess, showError } = useAlert();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [genderFilter, setGenderFilter] = useState('all'); // 'all' | 'male' | 'female'
+  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'members' | 'male' | 'female' | 'admins'
 
   // Role Change Modal
   const [selectedUser, setSelectedUser] = useState(null);
@@ -37,11 +39,11 @@ export default function AdminUsersScreen({ navigation }) {
       setUsers(list);
       setFilteredUsers(list);
     } catch (e) {
-      Alert.alert('خطأ', e.message || 'تعذر جلب قائمة المستخدمين');
+      showError('خطأ', e.message || 'تعذر جلب قائمة المستخدمين');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showError]);
 
   useEffect(() => {
     fetchUsers();
@@ -60,60 +62,60 @@ export default function AdminUsersScreen({ navigation }) {
       );
     }
 
-    if (genderFilter !== 'all') {
-      result = result.filter(u => u.gender === genderFilter);
+    if (activeTab === 'members') {
+      result = result.filter(u => u.role === 'user');
+    } else if (activeTab === 'male') {
+      result = result.filter(u => u.gender === 'male' && u.role === 'user');
+    } else if (activeTab === 'female') {
+      result = result.filter(u => u.gender === 'female' && u.role === 'user');
+    } else if (activeTab === 'admins') {
+      result = result.filter(u => u.role === 'admin' || u.role === 'super_admin');
     }
 
     setFilteredUsers(result);
-  }, [search, genderFilter, users]);
+  }, [search, activeTab, users]);
 
-  const handleToggleBan = async (targetUser) => {
+  const handleToggleBan = (targetUser) => {
     const isBanned = Boolean(targetUser.is_banned);
-    Alert.alert(
-      isBanned ? 'تأكيد فك الحظر' : 'تأكيد حظر المستخدم',
-      `هل أنت متأكد من ${isBanned ? 'فك حظر' : 'حظر'} الحساب [${targetUser.name}]؟`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'تأكيد',
-          style: isBanned ? 'default' : 'destructive',
-          onPress: async () => {
-            try {
-              const res = await api.toggleBanUser(targetUser.id);
-              Alert.alert('تم بنجاح', res.message || 'تم تحديث حالة الحساب.');
-              setUsers(prev =>
-                prev.map(u => (u.id === targetUser.id ? { ...u, is_banned: !isBanned } : u))
-              );
-            } catch (err) {
-              Alert.alert('خطأ', err.message || 'تعذر تعديل حالة الحساب.');
-            }
-          },
-        },
-      ]
-    );
+    showConfirm({
+      type: isBanned ? 'question' : 'warning',
+      title: isBanned ? 'تأكيد فك الحظر' : 'تأكيد حظر المستخدم',
+      message: `هل أنت متأكد من ${isBanned ? 'فك حظر الحساب والسماح له بالدخول' : 'حظر هذا الحساب ومنعه من استخدام التطبيق'} [${targetUser.name}]؟`,
+      confirmText: isBanned ? 'نعم، فك الحظر' : 'نعم، حظر الحساب',
+      confirmButtonColor: isBanned ? '#10B981' : '#EF4444',
+      cancelText: 'إلغاء',
+      onConfirm: async () => {
+        try {
+          const res = await api.toggleBanUser(targetUser.id);
+          showSuccess('تم بنجاح 🎉', res.message || 'تم تحديث حالة الحساب بنجاح.');
+          setUsers(prev =>
+            prev.map(u => (u.id === targetUser.id ? { ...u, is_banned: !isBanned } : u))
+          );
+        } catch (err) {
+          showError('خطأ', err.message || 'تعذر تعديل حالة الحساب.');
+        }
+      },
+    });
   };
 
-  const handleDeleteUser = async (targetUser) => {
-    Alert.alert(
-      'حذف المستخدم نهائياً',
-      `تحذير: سيتم حذف كافة بيانات [${targetUser.name}] واستمارته نهائياً من قاعدة البيانات!`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'حذف نهائي',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.deleteAdminUser(targetUser.id);
-              Alert.alert('تم الحذف', 'تم حذف المستخدم بنجاح.');
-              setUsers(prev => prev.filter(u => u.id !== targetUser.id));
-            } catch (err) {
-              Alert.alert('خطأ', err.message || 'تعذر حذف المستخدم.');
-            }
-          },
-        },
-      ]
-    );
+  const handleDeleteUser = (targetUser) => {
+    showConfirm({
+      type: 'error',
+      title: 'حذف المستخدم نهائياً ⚠️',
+      message: `تحذير هام: سيتم حذف كافة بيانات [${targetUser.name}] واستمارته نهائياً ولا يمكن التراجع عن هذا الإجراء!`,
+      confirmText: 'نعم، حذف نهائي',
+      confirmButtonColor: '#EF4444',
+      cancelText: 'إلغاء',
+      onConfirm: async () => {
+        try {
+          await api.deleteAdminUser(targetUser.id);
+          showSuccess('تم الحذف', 'تم حذف المستخدم وبياناته نهائياً.');
+          setUsers(prev => prev.filter(u => u.id !== targetUser.id));
+        } catch (err) {
+          showError('خطأ', err.message || 'تعذر حذف المستخدم.');
+        }
+      },
+    });
   };
 
   const handleApplyRoleChange = async (newRole) => {
@@ -121,13 +123,13 @@ export default function AdminUsersScreen({ navigation }) {
     setChangingRole(true);
     try {
       const res = await api.changeUserRole(selectedUser.id, newRole);
-      Alert.alert('تم بنجاح', res.message || 'تم تعديل صلاحية الحساب.');
+      showSuccess('تم بنجاح 🎉', res.message || 'تم تعديل صلاحية الحساب.');
       setUsers(prev =>
         prev.map(u => (u.id === selectedUser.id ? { ...u, role: newRole } : u))
       );
       setShowRoleModal(false);
     } catch (err) {
-      Alert.alert('خطأ', err.message || 'تعذر تغيير الصلاحية.');
+      showError('خطأ', err.message || 'تعذر تغيير الصلاحية.');
     } finally {
       setChangingRole(false);
     }
@@ -135,28 +137,28 @@ export default function AdminUsersScreen({ navigation }) {
 
   const handleChangeGender = (targetUser) => {
     const nextGender = targetUser.gender === 'male' ? 'female' : 'male';
-    const nextLabel = nextGender === 'male' ? 'عريس' : 'عروسة';
-    Alert.alert(
-      'تحويل نوع الحساب / الاستمارة',
-      `هل تود بالتأكيد تحويل حساب [${targetUser.name}] إلى (${nextLabel})؟`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: `تحويل إلى ${nextLabel}`,
-          onPress: async () => {
-            try {
-              const res = await api.updateAdminUser(targetUser.id, { gender: nextGender });
-              Alert.alert('تم بنجاح 🎉', res.message || `تم تحويل الحساب إلى (${nextLabel}) بنجاح.`);
-              setUsers(prev =>
-                prev.map(u => (u.id === targetUser.id ? { ...u, gender: nextGender } : u))
-              );
-            } catch (err) {
-              Alert.alert('خطأ', err.message || 'تعذر تعديل نوع الحساب.');
-            }
-          },
-        },
-      ]
-    );
+    const nextLabel = nextGender === 'male' ? 'عريس 👔' : 'عروسة 🌸';
+    const currentLabel = targetUser.gender === 'male' ? 'عريس' : 'عروسة';
+
+    showConfirm({
+      type: 'question',
+      title: 'تحويل نوع الحساب / الاستمارة',
+      message: `هل تود تحويل حساب [${targetUser.name}] من (${currentLabel}) إلى (${nextLabel})؟`,
+      confirmText: `تحويل إلى ${nextLabel}`,
+      confirmButtonColor: nextGender === 'male' ? '#0284C7' : '#E91E63',
+      cancelText: 'إلغاء',
+      onConfirm: async () => {
+        try {
+          const res = await api.updateAdminUser(targetUser.id, { gender: nextGender });
+          showSuccess('تم بنجاح 🎉', res.message || `تم تحويل الحساب إلى (${nextLabel}) بنجاح.`);
+          setUsers(prev =>
+            prev.map(u => (u.id === targetUser.id ? { ...u, gender: nextGender } : u))
+          );
+        } catch (err) {
+          showError('خطأ', err.message || 'تعذر تعديل نوع الحساب.');
+        }
+      },
+    });
   };
 
   const renderUserItem = ({ item }) => {
@@ -203,18 +205,18 @@ export default function AdminUsersScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.cardActions}>
-          <TouchableOpacity
-            style={[styles.actionBtn, isBanned ? styles.actionBtnUnban : styles.actionBtnBan]}
-            onPress={() => handleToggleBan(item)}
-          >
-            <Ionicons name={isBanned ? 'checkmark-circle-outline' : 'ban-outline'} size={16} color="#FFFFFF" />
-            <Text style={styles.actionBtnText}>{isBanned ? 'فك الحظر' : 'حظر الحساب'}</Text>
-          </TouchableOpacity>
+        {/* Action Buttons Grid (Clean 2-row layout without overflowing) */}
+        <View style={styles.cardActionsGrid}>
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={[styles.actionBtn, isBanned ? styles.actionBtnUnban : styles.actionBtnBan]}
+              onPress={() => handleToggleBan(item)}
+            >
+              <Ionicons name={isBanned ? 'checkmark-circle-outline' : 'ban-outline'} size={15} color="#FFFFFF" />
+              <Text style={styles.actionBtnText}>{isBanned ? 'فك الحظر' : 'حظر الحساب'}</Text>
+            </TouchableOpacity>
 
-          {isSuperAdmin && (
-            <>
+            {isSuperAdmin ? (
               <TouchableOpacity
                 style={[
                   styles.actionBtn,
@@ -228,7 +230,7 @@ export default function AdminUsersScreen({ navigation }) {
               >
                 <Ionicons
                   name={item.gender === 'male' ? 'woman-outline' : 'man-outline'}
-                  size={16}
+                  size={15}
                   color={item.gender === 'male' ? '#DB2777' : '#0284C7'}
                 />
                 <Text
@@ -237,10 +239,14 @@ export default function AdminUsersScreen({ navigation }) {
                     { color: item.gender === 'male' ? '#DB2777' : '#0284C7' },
                   ]}
                 >
-                  {item.gender === 'male' ? 'لعروسة' : 'لعريس'}
+                  {item.gender === 'male' ? 'تحويل لعروسة' : 'تحويل لعريس'}
                 </Text>
               </TouchableOpacity>
+            ) : null}
+          </View>
 
+          <View style={styles.actionRow}>
+            {isSuperAdmin && (
               <TouchableOpacity
                 style={[styles.actionBtn, styles.actionBtnRole]}
                 onPress={() => {
@@ -248,18 +254,19 @@ export default function AdminUsersScreen({ navigation }) {
                   setShowRoleModal(true);
                 }}
               >
-                <Ionicons name="shield-outline" size={16} color="#2D1B4D" />
-                <Text style={[styles.actionBtnText, { color: '#2D1B4D' }]}>الصلاحية</Text>
+                <Ionicons name="shield-outline" size={15} color="#2D1B4D" />
+                <Text style={[styles.actionBtnText, { color: '#2D1B4D' }]}>تغيير الصلاحية</Text>
               </TouchableOpacity>
-            </>
-          )}
+            )}
 
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.actionBtnDelete]}
-            onPress={() => handleDeleteUser(item)}
-          >
-            <Ionicons name="trash-outline" size={16} color="#E11D48" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.actionBtnDelete]}
+              onPress={() => handleDeleteUser(item)}
+            >
+              <Ionicons name="trash-outline" size={15} color="#E11D48" />
+              <Text style={[styles.actionBtnText, { color: '#E11D48' }]}>حذف نهائي</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -293,27 +300,57 @@ export default function AdminUsersScreen({ navigation }) {
           ) : null}
         </View>
 
-        {/* Gender Filters */}
-        <View style={styles.filterPills}>
+        {/* Filter Tabs Scrollable */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterPillsScroll}
+        >
           <TouchableOpacity
-            style={[styles.pill, genderFilter === 'all' && styles.pillActive]}
-            onPress={() => setGenderFilter('all')}
+            style={[styles.pill, activeTab === 'all' && styles.pillActive]}
+            onPress={() => setActiveTab('all')}
           >
-            <Text style={[styles.pillText, genderFilter === 'all' && styles.pillTextActive]}>الكل</Text>
+            <Text style={[styles.pillText, activeTab === 'all' && styles.pillTextActive]}>
+              الكل ({users.length})
+            </Text>
           </TouchableOpacity>
+
           <TouchableOpacity
-            style={[styles.pill, genderFilter === 'male' && styles.pillActive]}
-            onPress={() => setGenderFilter('male')}
+            style={[styles.pill, activeTab === 'members' && styles.pillActive]}
+            onPress={() => setActiveTab('members')}
           >
-            <Text style={[styles.pillText, genderFilter === 'male' && styles.pillTextActive]}>عرسان</Text>
+            <Text style={[styles.pillText, activeTab === 'members' && styles.pillTextActive]}>
+              الأعضاء ({users.filter(u => u.role === 'user').length})
+            </Text>
           </TouchableOpacity>
+
           <TouchableOpacity
-            style={[styles.pill, genderFilter === 'female' && styles.pillActive]}
-            onPress={() => setGenderFilter('female')}
+            style={[styles.pill, activeTab === 'male' && styles.pillActive]}
+            onPress={() => setActiveTab('male')}
           >
-            <Text style={[styles.pillText, genderFilter === 'female' && styles.pillTextActive]}>عرائس</Text>
+            <Text style={[styles.pillText, activeTab === 'male' && styles.pillTextActive]}>
+              عرسان 👔 ({users.filter(u => u.gender === 'male' && u.role === 'user').length})
+            </Text>
           </TouchableOpacity>
-        </View>
+
+          <TouchableOpacity
+            style={[styles.pill, activeTab === 'female' && styles.pillActive]}
+            onPress={() => setActiveTab('female')}
+          >
+            <Text style={[styles.pillText, activeTab === 'female' && styles.pillTextActive]}>
+              عرائس 🌸 ({users.filter(u => u.gender === 'female' && u.role === 'user').length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.pill, activeTab === 'admins' && styles.pillActive, { backgroundColor: activeTab === 'admins' ? '#7E22CE' : '#F3E8FF' }]}
+            onPress={() => setActiveTab('admins')}
+          >
+            <Text style={[styles.pillText, activeTab === 'admins' ? styles.pillTextActive : { color: '#7E22CE', fontWeight: '800' }]}>
+              المشرفين 🛡️ ({users.filter(u => u.role === 'admin' || u.role === 'super_admin').length})
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {loading ? (
@@ -415,19 +452,20 @@ const styles = StyleSheet.create({
     color: '#2D1B4D',
     textAlign: 'right',
   },
-  filterPills: {
+  filterPillsScroll: {
     flexDirection: 'row-reverse',
     gap: 8,
     marginTop: 10,
+    paddingBottom: 2,
   },
   pill: {
-    paddingVertical: 6,
+    paddingVertical: 7,
     paddingHorizontal: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: '#F1F5F9',
   },
   pillActive: { backgroundColor: '#E91E63' },
-  pillText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
+  pillText: { fontSize: 12.5, fontWeight: '700', color: '#64748B' },
   pillTextActive: { color: '#FFFFFF', fontWeight: '800' },
   loadingBox: { padding: 50, alignItems: 'center' },
   listContent: { padding: 16, paddingBottom: 40 },
@@ -475,27 +513,31 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   subStatusText: { fontSize: 11.5, fontWeight: '700', color: '#2563EB' },
-  cardActions: {
-    flexDirection: 'row-reverse',
-    gap: 8,
-    marginTop: 14,
-    paddingTop: 12,
+  cardActionsGrid: {
+    marginTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#F1F4F9',
   },
+  actionRow: {
+    flexDirection: 'row-reverse',
+    gap: 8,
+    marginTop: 6,
+  },
   actionBtn: {
+    flex: 1,
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+    borderRadius: 12,
     gap: 5,
   },
   actionBtnBan: { backgroundColor: '#E11D48' },
   actionBtnUnban: { backgroundColor: '#059669' },
-  actionBtnRole: { backgroundColor: '#E2E8F0' },
-  actionBtnDelete: { backgroundColor: '#FFF1F2', width: 38, paddingHorizontal: 0 },
+  actionBtnRole: { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0' },
+  actionBtnDelete: { backgroundColor: '#FFF1F2', borderWidth: 1, borderColor: '#FECDD3' },
   actionBtnText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
   emptyBox: { padding: 40, alignItems: 'center' },
   emptyText: { marginTop: 10, fontSize: 13.5, fontWeight: '700', color: '#94A3B8' },

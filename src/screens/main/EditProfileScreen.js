@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   StatusBar,
   Modal,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { APP_CONFIG } from '../../constants/config';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
@@ -81,6 +81,7 @@ const ACCOMMODATION_OPTIONS = [
 
 export default function EditProfileScreen({ navigation }) {
   const { user, updateUserProfile } = useAuth();
+  const { showSuccess, showError, showWarning, showConfirm } = useAlert();
   const isFemale = user?.gender === 'female';
 
   const [loading, setLoading] = useState(true);
@@ -200,52 +201,52 @@ export default function EditProfileScreen({ navigation }) {
   const validateStep = (currentStep) => {
     if (currentStep === 1) {
       if (!cleanStr(formData.full_name)) {
-        Alert.alert('تنبيه', 'يرجى إدخال الاسم بالكامل.');
+        showWarning('تنبيه', 'يرجى إدخال الاسم بالكامل.');
         return false;
       }
       if (!cleanStr(formData.phone) || cleanStr(formData.phone).length < 10) {
-        Alert.alert('تنبيه', 'يرجى إدخال رقم هاتف صحيح (11 رقم).');
+        showWarning('تنبيه', 'يرجى إدخال رقم هاتف صحيح (11 رقم).');
         return false;
       }
       if (!cleanStr(formData.marital_status)) {
-        Alert.alert('تنبيه', 'يرجى تحديد الحالة الاجتماعية.');
+        showWarning('تنبيه', 'يرجى تحديد الحالة الاجتماعية.');
         return false;
       }
       if (!cleanStr(formData.education)) {
-        Alert.alert('تنبيه', 'يرجى إدخال المؤهل الدراسي.');
+        showWarning('تنبيه', 'يرجى إدخال المؤهل الدراسي.');
         return false;
       }
       if (!cleanStr(formData.job)) {
-        Alert.alert('تنبيه', 'يرجى إدخال الوظيفة أو كتابة (لا أعمل).');
+        showWarning('تنبيه', 'يرجى إدخال الوظيفة أو كتابة (لا أعمل).');
         return false;
       }
     }
 
     if (currentStep === 2) {
       if (!cleanStr(formData.governorate)) {
-        Alert.alert('تنبيه', 'يرجى اختيار المحافظة.');
+        showWarning('تنبيه', 'يرجى اختيار المحافظة.');
         return false;
       }
       if (!cleanStr(formData.area)) {
-        Alert.alert('تنبيه', 'يرجى إدخال المدينة أو المركز.');
+        showWarning('تنبيه', 'يرجى إدخال المدينة أو المركز.');
         return false;
       }
       if (!cleanStr(formData.prayer)) {
-        Alert.alert('تنبيه', 'يرجى تحديد درجة الالتزام بالصلاة.');
+        showWarning('تنبيه', 'يرجى تحديد درجة الالتزام بالصلاة.');
         return false;
       }
       if (isFemale) {
         if (!cleanStr(formData.hijab)) {
-          Alert.alert('تنبيه', 'يرجى تحديد نوع الحجاب.');
+          showWarning('تنبيه', 'يرجى تحديد نوع الحجاب.');
           return false;
         }
         if (!cleanStr(formData.guardian_phone) || cleanStr(formData.guardian_phone).length < 10) {
-          Alert.alert('تنبيه', 'يرجى إدخال رقم هاتف ولي الأمر (11 رقم).');
+          showWarning('تنبيه', 'يرجى إدخال رقم هاتف ولي الأمر (11 رقم).');
           return false;
         }
       } else {
         if (!cleanStr(formData.smoking)) {
-          Alert.alert('تنبيه', 'يرجى تحديد الموقف من التدخين.');
+          showWarning('تنبيه', 'يرجى تحديد الموقف من التدخين.');
           return false;
         }
       }
@@ -306,26 +307,33 @@ export default function EditProfileScreen({ navigation }) {
         updateUserProfile({ ...(user || {}), profile: res.profile || payload });
       }
 
-      Alert.alert(
-        'تم الحفظ بنجاح 🎉',
-        isAlreadyRegistered
-          ? 'تم تحديث بيانات استمارتك بنجاح. استمارتك الآن محدثة ومتاحة للمطابقة.'
-          : 'تهانينا! تم حفظ استمارة الزواج الشرعي بنجاح وأصبحت مرئية للشريك المناسب.',
-        !isFemale
-          ? [
-              {
-                text: 'تصفح العرايس الآن 🌸',
-                onPress: () => {
-                  setIsEditing(false);
-                  navigation.navigate('HomeTab');
-                },
-              },
-              { text: 'حسناً', onPress: () => setIsEditing(false) },
-            ]
-          : [{ text: 'حسناً', onPress: () => setIsEditing(false) }]
-      );
+      if (!isFemale) {
+        showConfirm({
+          type: 'success',
+          title: 'تم الحفظ بنجاح 🎉',
+          message: isAlreadyRegistered
+            ? 'تم تحديث بيانات استمارتك بنجاح. استمارتك الآن محدثة ومتاحة للمطابقة.'
+            : 'تهانينا! تم حفظ استمارة الزواج الشرعي بنجاح وأصبحت مرئية للشريك المناسب.',
+          confirmText: 'تصفح العرايس الآن 🌸',
+          cancelText: 'إغلاق',
+          confirmButtonColor: '#E91E63',
+          onConfirm: () => {
+            setIsEditing(false);
+            navigation.navigate('HomeTab');
+          },
+          onCancel: () => setIsEditing(false),
+        });
+      } else {
+        showSuccess(
+          'تم الحفظ بنجاح 🎉',
+          isAlreadyRegistered
+            ? 'تم تحديث بيانات استمارتك بنجاح. استمارتك الآن محدثة ومتاحة للمطابقة.'
+            : 'تهانينا! تم حفظ استمارة الزواج الشرعي بنجاح وبات ملفك متاحاً للعرسان الجادين.',
+          () => setIsEditing(false)
+        );
+      }
     } catch (e) {
-      Alert.alert('خطأ في الحفظ', e.message || 'يرجى مراجعة البيانات المدخلة والمحاولة مجدداً.');
+      showError('خطأ في الحفظ', e.message || 'يرجى مراجعة البيانات المدخلة والمحاولة مجدداً.');
     } finally {
       setSaving(false);
     }

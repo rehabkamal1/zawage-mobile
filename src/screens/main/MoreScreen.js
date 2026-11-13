@@ -12,31 +12,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function MoreScreen({ navigation }) {
   const { user, isAdmin, isSuperAdmin, logout } = useAuth();
+  const { showConfirm } = useAlert();
   const isMale = user?.gender === 'male';
 
   const handleLogout = () => {
-    Alert.alert(
-      'تسجيل الخروج',
-      'هل أنت متأكد من رغبتك في تسجيل الخروج من التطبيق؟',
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'نعم، تسجيل الخروج',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.logout().catch(() => {});
-            } finally {
-              logout();
-            }
-          },
-        },
-      ]
-    );
+    showConfirm({
+      type: 'warning',
+      title: 'تسجيل الخروج',
+      message: 'هل أنت متأكد من رغبتك في تسجيل الخروج من التطبيق؟',
+      confirmText: 'نعم، تسجيل الخروج',
+      cancelText: 'إلغاء',
+      confirmButtonColor: '#EF4444',
+      onConfirm: async () => {
+        try {
+          await api.logout().catch(() => {});
+        } finally {
+          logout();
+        }
+      },
+    });
   };
 
   const menuItems = [

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   StatusBar,
   Linking,
-  Alert,
   Modal,
   TextInput,
   ActivityIndicator,
@@ -16,9 +15,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/client';
+import { useAlert } from '../../context/AlertContext';
+import { formatProfileValue, formatLocation } from '../../utils/formatProfileValue';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function MatchDetailScreen({ route, navigation }) {
+  const { showConfirm, showSuccess, showError, showWarning } = useAlert();
   const { partner: initialPartner, currentUser } = route.params || {};
   const [partner, setPartner] = useState(initialPartner || {});
   const [unlocking, setUnlocking] = useState(false);
@@ -48,7 +50,7 @@ export default function MatchDetailScreen({ route, navigation }) {
   const handleWhatsApp = () => {
     const phone = partner.phone || profile.guardian_phone;
     if (!phone) {
-      Alert.alert('تنبيه', 'رقم الهاتف غير متاح حالياً.');
+      showWarning('تنبيه', 'رقم الهاتف غير متاح حالياً.');
       return;
     }
     const cleanPhone = phone.replace(/[^0-9]/g, '');
@@ -56,50 +58,49 @@ export default function MatchDetailScreen({ route, navigation }) {
     const partnerName = profile.nickname || partner.name;
     const msg = encodeURIComponent(`السلام عليكم، بخصوص استمارة العروس (${partnerName}) في تطبيق نصفي الآخر وأريد التواصل معك.`);
     Linking.openURL(`https://wa.me/${fullPhone}?text=${msg}`).catch(() => {
-      Alert.alert('خطأ', 'تعذر فتح تطبيق واتساب على هاتفك.');
+      showError('خطأ', 'تعذر فتح تطبيق واتساب على هاتفك.');
     });
   };
 
   const handleUnlock = async () => {
-    Alert.alert(
-      'فك قفل بيانات التواصل',
-      `هل تود فك قفل استمارة (${profile.nickname || partner.name}) للتواصل مع ولي الأمر عبر واتساب؟\nسيتم استهلاك 1 استمارة من رصيدك.`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'تأكيد وفك القفل',
-          onPress: async () => {
-            setUnlocking(true);
-            try {
-              const res = await api.unlockContact(partner.id);
-              Alert.alert('تهانينا 🎉', res.message || 'تم فك القفل بنجاح، يمكنك الآن التواصل عبر واتساب.');
-              setPartner(prev => ({ ...prev, is_unlocked: true, phone: res.phone || prev.phone }));
-            } catch (err) {
-              const msg = err.message || 'تعذر فك القفل';
-              if (err.data?.requires_subscription || err.data?.limit_reached) {
-                Alert.alert(
-                  'انتهى الرصيد ⚠️',
-                  msg,
-                  [
-                    { text: 'إلغاء', style: 'cancel' },
-                    { text: 'الاشتراك في باقة الآن 🚀', onPress: () => navigation.navigate('SubscriptionsTab') }
-                  ]
-                );
-              } else {
-                Alert.alert('تنبيه', msg);
-              }
-            } finally {
-              setUnlocking(false);
-            }
+    showConfirm({
+      type: 'question',
+      title: 'فك قفل بيانات التواصل',
+      message: `هل تود فك قفل استمارة (${profile.nickname || partner.name}) للتواصل مع ولي الأمر عبر واتساب؟\nسيتم استهلاك 1 استمارة من رصيدك.`,
+      confirmText: 'نعم، فك القفل الآن',
+      cancelText: 'إلغاء',
+      confirmButtonColor: '#E91E63',
+      onConfirm: async () => {
+        setUnlocking(true);
+        try {
+          const res = await api.unlockContact(partner.id);
+          showSuccess('تهانينا 🎉', res.message || 'تم فك القفل بنجاح، يمكنك الآن التواصل عبر واتساب.');
+          setPartner(prev => ({ ...prev, is_unlocked: true, phone: res.phone || prev.phone }));
+        } catch (err) {
+          const msg = err.message || 'تعذر فك القفل';
+          if (err.data?.requires_subscription || err.data?.limit_reached) {
+            showConfirm({
+              type: 'warning',
+              title: 'انتهى الرصيد ⚠️',
+              message: msg,
+              confirmText: 'الاشتراك في باقة الآن 🚀',
+              cancelText: 'إلغاء',
+              confirmButtonColor: '#8B5CF6',
+              onConfirm: () => navigation.navigate('SubscriptionsTab'),
+            });
+          } else {
+            showError('تنبيه', msg);
           }
+        } finally {
+          setUnlocking(false);
         }
-      ]
-    );
+      },
+    });
   };
 
   const handleSendReport = async () => {
     if (!reportReason.trim()) {
-      Alert.alert('تنبيه', 'يرجى كتابة سبب البلاغ قبل الإرسال.');
+      showWarning('تنبيه', 'يرجى كتابة سبب البلاغ قبل الإرسال.');
       return;
     }
     setSubmittingReport(true);
@@ -107,30 +108,30 @@ export default function MatchDetailScreen({ route, navigation }) {
       await api.sendReport(partner.id, reportReason.trim());
       setReportModalVisible(false);
       setReportReason('');
-      Alert.alert(
+      showSuccess(
         'تم إرسال البلاغ 🛡️',
         'شكراً لتعاونك وحرصك. ستقوم إدارة المنصة بمراجعة البلاغ وتفاصيل الاستمارة واتخاذ الإجراء اللازم فوراً.'
       );
     } catch (err) {
-      Alert.alert('خطأ', err.message || 'تعذر إرسال البلاغ');
+      showError('خطأ', err.message || 'تعذر إرسال البلاغ');
     } finally {
       setSubmittingReport(false);
     }
   };
 
   const profileFields = [
-    { label: 'المحافظة', value: profile.governorate || 'غير محدد' },
-    { label: 'المدينة / المركز', value: profile.area || 'غير محدد' },
-    { label: 'الحالة الاجتماعية', value: profile.marital_status || 'غير محدد' },
+    { label: 'المحافظة', value: formatProfileValue(profile.governorate) },
+    { label: 'المدينة / المركز', value: formatProfileValue(profile.area) },
+    { label: 'الحالة الاجتماعية', value: formatProfileValue(profile.marital_status) },
     { label: 'السن', value: age ? `${age} سنة` : 'غير محدد' },
-    { label: 'الوظيفة', value: profile.job || 'غير محدد' },
-    { label: 'المؤهل الدراسي', value: profile.education || 'غير محدد' },
+    { label: 'الوظيفة', value: formatProfileValue(profile.job, 'الوظيفة غير محددة') },
+    { label: 'المؤهل الدراسي', value: formatProfileValue(profile.education) },
     { label: 'الطول والوزن', value: profile.height ? `${profile.height} سم • ${profile.weight || ''} كجم` : 'غير محدد' },
-    { label: 'لون البشرة', value: profile.skin_tone || 'غير محدد' },
-    { label: 'الالتزام بالصلاة', value: profile.prayer || 'غير محدد' },
-    { label: partner.gender === 'female' ? 'الحجاب' : 'التدخين', value: (partner.gender === 'female' ? profile.hijab : profile.smoking) || 'غير محدد' },
+    { label: 'لون البشرة', value: formatProfileValue(profile.skin_tone) },
+    { label: 'الالتزام بالصلاة', value: formatProfileValue(profile.prayer) },
+    { label: partner.gender === 'female' ? 'الحجاب' : 'التدخين', value: formatProfileValue(partner.gender === 'female' ? profile.hijab : profile.smoking) },
     { label: 'الإنجاب / الأطفال', value: profile.has_children ? `لديه أطفال (${profile.children_count || 1})` : 'لا يوجد أطفال' },
-    { label: 'الانتقال لمحافظة أخرى', value: profile.move_other_gov || 'حسب الاتفاق' },
+    { label: 'الانتقال لمحافظة أخرى', value: formatProfileValue(profile.move_other_gov, 'حسب الاتفاق') },
   ];
 
   return (

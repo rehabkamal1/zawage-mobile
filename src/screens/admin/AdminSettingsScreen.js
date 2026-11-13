@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,27 +14,29 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/client';
 import { APP_CONFIG } from '../../constants/config';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function AdminSettingsScreen({ navigation }) {
   const { user, isSuperAdmin, logout } = useAuth();
+  const { showSuccess, showError, showWarning } = useAlert();
   const [phoneToPromote, setPhoneToPromote] = useState('');
   const [promoting, setPromoting] = useState(false);
 
   const handlePromote = async () => {
     const cleanPhone = phoneToPromote.trim();
     if (!cleanPhone || cleanPhone.length < 10) {
-      Alert.alert('تنبيه', 'يرجى إدخال رقم هاتف صحيح ومسجل للمستخدم المراد ترقيته.');
+      showWarning('تنبيه', 'يرجى إدخال رقم هاتف صحيح ومسجل للمستخدم المراد ترقيته.');
       return;
     }
 
     setPromoting(true);
     try {
       const res = await api.promoteByPhone(cleanPhone);
-      Alert.alert('تمت الترقية بنجاح 🛡️', res.message || 'تمت ترقية الحساب إلى مشرف بنجاح!');
+      showSuccess('تمت الترقية بنجاح 🛡️', res.message || 'تمت ترقية الحساب إلى مشرف بنجاح!');
       setPhoneToPromote('');
     } catch (e) {
-      Alert.alert('تعذر الترقية', e.message || 'لم يتم العثور على حساب مسجل بهذا الرقم.');
+      showError('تعذر الترقية', e.message || 'لم يتم العثور على حساب مسجل بهذا الرقم.');
     } finally {
       setPromoting(false);
     }

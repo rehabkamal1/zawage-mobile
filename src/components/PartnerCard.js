@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { formatProfileValue, formatLocation } from '../utils/formatProfileValue';
 import { COLORS, SHADOWS } from '../constants/theme';
 
 export default function PartnerCard({
@@ -55,7 +56,7 @@ export default function PartnerCard({
       {/* Floating Status Badge (Top Right) */}
       <View style={styles.statusBadge}>
         <Text style={styles.statusBadgeText}>
-          {partner.is_unlocked ? '🔓 مفكوك القفل' : '🔒 مقفول'} • {profile.marital_status || 'غير محدد'}
+          {partner.is_unlocked ? '🔓 مفكوك القفل' : '🔒 مقفول'} • {formatProfileValue(profile.marital_status, 'غير محدد')}
         </Text>
       </View>
 
@@ -103,21 +104,21 @@ export default function PartnerCard({
 
         {/* Location & Job Meta */}
         <View style={styles.metaRow}>
-          <Text style={styles.metaText}>{profile.governorate || 'الموقع غير محدد'}</Text>
+          <Text style={styles.metaText}>{formatLocation(profile.governorate, profile.area)}</Text>
           <Text style={styles.metaDot}>•</Text>
-          <Text style={styles.metaText}>{profile.job || 'الوظيفة غير محددة'}</Text>
+          <Text style={styles.metaText}>{formatProfileValue(profile.job, 'الوظيفة غير محددة')}</Text>
         </View>
 
         {/* Tags Row */}
         <View style={styles.tagsContainer}>
           {profile.education ? (
             <View style={styles.tag}>
-              <Text style={styles.tagText}>{profile.education}</Text>
+              <Text style={styles.tagText}>{formatProfileValue(profile.education)}</Text>
             </View>
           ) : null}
           {profile.skin_tone ? (
             <View style={styles.tag}>
-              <Text style={styles.tagText}>{profile.skin_tone}</Text>
+              <Text style={styles.tagText}>{formatProfileValue(profile.skin_tone)}</Text>
             </View>
           ) : null}
           {profile.height ? (

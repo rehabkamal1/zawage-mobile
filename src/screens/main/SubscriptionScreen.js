@@ -8,15 +8,15 @@ import {
   TouchableOpacity,
   StatusBar,
   Linking,
-  Alert,
   Image,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { api, getStoredAuthData, API_BASE_URL } from '../../api/client';
+import { useAlert } from '../../context/AlertContext';
 import { APP_CONFIG } from '../../constants/config';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
@@ -53,6 +53,7 @@ const PLANS = [
 ];
 
 export default function SubscriptionScreen({ navigation }) {
+  const { showSuccess, showError, showWarning } = useAlert();
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState('weekly');
   const [senderWallet, setSenderWallet] = useState('');
@@ -81,13 +82,14 @@ export default function SubscriptionScreen({ navigation }) {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        Alert.alert('صلاحية الوصول', 'يرجى السماح بالوصول لمعرض الصور لإرفاق إيصال التحويل.');
+        showWarning('صلاحية الوصول', 'يرجى السماح بالوصول لمعرض الصور لإرفاق إيصال التحويل.');
         return;
       }
 
+      // allowsEditing is set to false so the user isn't stuck on an English "CROP" screen
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        allowsEditing: false,
         quality: 0.85,
       });
 
@@ -95,13 +97,13 @@ export default function SubscriptionScreen({ navigation }) {
         setReceiptImage(result.assets[0].uri);
       }
     } catch (err) {
-      Alert.alert('خطأ', 'تعذر فتح معرض الصور');
+      showError('خطأ', 'تعذر فتح معرض الصور');
     }
   };
 
   const handleSubmitTransfer = async () => {
     if (!receiptImage) {
-      Alert.alert('تنبيه', 'يرجى إرفاق صورة (سكرين شوت) إيصال التحويل أولاً.');
+      showWarning('تنبيه مطلوب', 'يرجى اختيار صورة (سكرين شوت) إيصال التحويل أولاً.');
       return;
     }
 
@@ -113,7 +115,7 @@ export default function SubscriptionScreen({ navigation }) {
       const uploadResult = await FileSystem.uploadAsync(endpoint, receiptImage, {
         fieldName: 'receipt_image',
         httpMethod: 'POST',
-        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        uploadType: FileSystem.FileSystemUploadType?.MULTIPART ?? 1,
         headers: {
           Accept: 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -130,7 +132,7 @@ export default function SubscriptionScreen({ navigation }) {
       } catch (_) {}
 
       if (uploadResult.status >= 200 && uploadResult.status < 300) {
-        Alert.alert(
+        showSuccess(
           'تم إرسال إيصال التحويل بنجاح 🎉',
           res.message || 'طلبك الآن قيد المراجعة والتدقيق من قبل الإدارة، وسيتم تفعيل رصيدك فور مراجعة التحويل.'
         );
@@ -139,11 +141,15 @@ export default function SubscriptionScreen({ navigation }) {
         setSenderWallet('');
         fetchUserData();
       } else {
-        const errorMsg = res.message || res.error || (res.errors ? Object.values(res.errors)[0]?.[0] : null) || 'حدث خطأ أثناء إرسال الإيصال';
-        Alert.alert('خطأ في إرسال الإيصال', errorMsg);
+        const errorMsg =
+          res.message ||
+          res.error ||
+          (res.errors ? Object.values(res.errors)[0]?.[0] : null) ||
+          'حدث خطأ أثناء إرسال الإيصال';
+        showError('خطأ في إرسال الإيصال', errorMsg);
       }
     } catch (err) {
-      Alert.alert('خطأ في إرسال الإيصال', err.message || 'يرجى التأكد من اتصال الإنترنت والمحاولة مجدداً.');
+      showError('خطأ في إرسال الإيصال', err.message || 'يرجى التأكد من اتصال الإنترنت والمحاولة مجدداً.');
     } finally {
       setSubmitting(false);
     }

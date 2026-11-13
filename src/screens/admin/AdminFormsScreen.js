@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Modal,
   ScrollView,
   StatusBar,
@@ -15,10 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
+import { formatProfileValue, formatLocation } from '../../utils/formatProfileValue';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function AdminFormsScreen({ navigation }) {
   const { isSuperAdmin } = useAuth();
+  const { showConfirm, showSuccess, showError } = useAlert();
   const [users, setUsers] = useState([]);
   const [filteredProfiles, setFilteredProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,11 +34,11 @@ export default function AdminFormsScreen({ navigation }) {
       setUsers(list);
       setFilteredProfiles(list);
     } catch (e) {
-      Alert.alert('خطأ', e.message || 'تعذر جلب الاستمارات');
+      showError('خطأ', e.message || 'تعذر جلب الاستمارات');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showError]);
 
   useEffect(() => {
     fetchProfiles();
@@ -53,30 +55,31 @@ export default function AdminFormsScreen({ navigation }) {
   const handleConvertGender = (profileItem) => {
     const targetId = profileItem.id;
     const nextGender = profileItem.gender === 'male' ? 'female' : 'male';
-    const nextLabel = nextGender === 'male' ? 'عريس' : 'عروسة';
-    Alert.alert(
-      'تحويل نوع الاستمارة',
-      `هل تود بالتأكيد تحويل استمارة (${profileItem.profile?.nickname || profileItem.name}) من (${profileItem.gender === 'male' ? 'عريس' : 'عروسة'}) إلى (${nextLabel})؟`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: `نعم، تحويل إلى ${nextLabel}`,
-          onPress: async () => {
-            try {
-              const res = await api.updateAdminUser(targetId, { gender: nextGender });
-              Alert.alert('تم بنجاح 🎉', res.message || `تم تحويل الاستمارة إلى (${nextLabel}) بنجاح.`);
-              setUsers(prev => prev.map(u => (u.id === targetId ? { ...u, gender: nextGender } : u)));
-              setFilteredProfiles(prev => prev.map(u => (u.id === targetId ? { ...u, gender: nextGender } : u)));
-              if (selectedProfile?.id === targetId) {
-                setSelectedProfile(prev => ({ ...prev, gender: nextGender }));
-              }
-            } catch (err) {
-              Alert.alert('خطأ', err.message || 'تعذر تحويل نوع الاستمارة.');
-            }
-          },
-        },
-      ]
-    );
+    const nextLabel = nextGender === 'male' ? 'عريس 👔' : 'عروسة 🌸';
+    const currentLabel = profileItem.gender === 'male' ? 'عريس' : 'عروسة';
+    const displayName = profileItem.profile?.nickname || profileItem.name;
+
+    showConfirm({
+      type: 'question',
+      title: 'تحويل نوع الاستمارة',
+      message: `هل تود بالتأكيد تحويل استمارة (${displayName}) من (${currentLabel}) إلى (${nextLabel})؟`,
+      confirmText: `نعم، تحويل إلى ${nextLabel}`,
+      cancelText: 'إلغاء',
+      confirmButtonColor: nextGender === 'male' ? '#0284C7' : '#E91E63',
+      onConfirm: async () => {
+        try {
+          const res = await api.updateAdminUser(targetId, { gender: nextGender });
+          showSuccess('تم بنجاح 🎉', res.message || `تم تحويل الاستمارة إلى (${nextLabel}) بنجاح.`);
+          setUsers(prev => prev.map(u => (u.id === targetId ? { ...u, gender: nextGender } : u)));
+          setFilteredProfiles(prev => prev.map(u => (u.id === targetId ? { ...u, gender: nextGender } : u)));
+          if (selectedProfile?.id === targetId) {
+            setSelectedProfile(prev => ({ ...prev, gender: nextGender }));
+          }
+        } catch (err) {
+          showError('خطأ', err.message || 'تعذر تحويل نوع الاستمارة.');
+        }
+      },
+    });
   };
 
   const renderProfileItem = ({ item }) => {
@@ -95,7 +98,7 @@ export default function AdminFormsScreen({ navigation }) {
         </View>
 
         <Text style={styles.metaText}>
-          {p.governorate || 'المحافظة غير محددة'} • {p.job || 'الوظيفة غير محددة'} • {p.marital_status || 'الحالة'}
+          {formatLocation(p.governorate, p.area)} • {formatProfileValue(p.job, 'الوظيفة غير محددة')} • {formatProfileValue(p.marital_status, 'الحالة')}
         </Text>
 
         {p.bio ? (
@@ -191,21 +194,21 @@ export default function AdminFormsScreen({ navigation }) {
                 </View>
 
                 <Text style={styles.sectionHeading}>البيانات العامة والمواصفات</Text>
-                <SpecItem label="المحافظة والمنطقة" value={`${selectedProfile.profile?.governorate || ''} - ${selectedProfile.profile?.area || ''}`} />
-                <SpecItem label="الحالة الاجتماعية" value={selectedProfile.profile?.marital_status} />
+                <SpecItem label="المحافظة والمنطقة" value={formatLocation(selectedProfile.profile?.governorate, selectedProfile.profile?.area)} />
+                <SpecItem label="الحالة الاجتماعية" value={formatProfileValue(selectedProfile.profile?.marital_status)} />
                 <SpecItem label="تاريخ الميلاد" value={selectedProfile.profile?.dob} />
-                <SpecItem label="المؤهل الدراسي" value={selectedProfile.profile?.education} />
-                <SpecItem label="الوظيفة / العمل" value={selectedProfile.profile?.job} />
-                <SpecItem label="مستوى الدخل" value={selectedProfile.profile?.income} />
-                <SpecItem label="السكن" value={selectedProfile.profile?.accommodation} />
+                <SpecItem label="المؤهل الدراسي" value={formatProfileValue(selectedProfile.profile?.education)} />
+                <SpecItem label="الوظيفة / العمل" value={formatProfileValue(selectedProfile.profile?.job)} />
+                <SpecItem label="مستوى الدخل" value={formatProfileValue(selectedProfile.profile?.income)} />
+                <SpecItem label="السكن" value={formatProfileValue(selectedProfile.profile?.accommodation)} />
                 <SpecItem label="الطول والوزن" value={`${selectedProfile.profile?.height || '—'} سم / ${selectedProfile.profile?.weight || '—'} كجم`} />
-                <SpecItem label="لون البشرة" value={selectedProfile.profile?.skin_tone} />
+                <SpecItem label="لون البشرة" value={formatProfileValue(selectedProfile.profile?.skin_tone)} />
 
                 <Text style={styles.sectionHeading}>الالتزام الديني والشرعي</Text>
-                <SpecItem label="المحافظة على الصلاة" value={selectedProfile.profile?.prayer} />
-                <SpecItem label="الحجاب / النقاب" value={selectedProfile.profile?.hijab} />
-                <SpecItem label="التدخين" value={selectedProfile.profile?.smoking} />
-                <SpecItem label="موقف القائمة" value={selectedProfile.profile?.qaima_status} />
+                <SpecItem label="المحافظة على الصلاة" value={formatProfileValue(selectedProfile.profile?.prayer)} />
+                <SpecItem label="الحجاب / النقاب" value={formatProfileValue(selectedProfile.profile?.hijab)} />
+                <SpecItem label="التدخين" value={formatProfileValue(selectedProfile.profile?.smoking)} />
+                <SpecItem label="موقف القائمة" value={formatProfileValue(selectedProfile.profile?.qaima_status)} />
 
                 {selectedProfile.profile?.bio ? (
                   <>

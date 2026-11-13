@@ -6,15 +6,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/client';
+import { useAlert } from '../../context/AlertContext';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function AdminReportsScreen({ navigation }) {
+  const { showConfirm, showSuccess, showError } = useAlert();
   const [reports, setReports] = useState([]);
   const [filteredReports, setFilteredReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,11 +27,11 @@ export default function AdminReportsScreen({ navigation }) {
       const list = data.reports || [];
       setReports(list);
     } catch (e) {
-      Alert.alert('خطأ', e.message || 'تعذر جلب البلاغات');
+      showError('خطأ', e.message || 'تعذر جلب البلاغات');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showError]);
 
   useEffect(() => {
     fetchReports();
@@ -47,12 +48,12 @@ export default function AdminReportsScreen({ navigation }) {
   const handleUpdateStatus = async (reportId, newStatus) => {
     try {
       await api.updateAdminReport(reportId, { status: newStatus });
-      Alert.alert('تم بنجاح', 'تم تحديث حالة البلاغ.');
+      showSuccess('تم بنجاح 🎉', 'تم تحديث حالة البلاغ.');
       setReports(prev =>
         prev.map(r => (r.id === reportId ? { ...r, status: newStatus } : r))
       );
     } catch (e) {
-      Alert.alert('خطأ', e.message || 'تعذر تحديث البلاغ.');
+      showError('خطأ', e.message || 'تعذر تحديث البلاغ.');
     }
   };
 
@@ -60,29 +61,26 @@ export default function AdminReportsScreen({ navigation }) {
     const reportedId = report.reported_id || report.reported_user?.id;
     const reportedName = report.reported_user?.name || 'المستخدم';
 
-    Alert.alert(
-      'حظر المستخدم المبلغ عنه',
-      `هل تود حظر [${reportedName}] نهائياً من المنصة بسبب هذا البلاغ؟`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'تأكيد الحظر',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.toggleBanUser(reportedId);
-              await api.updateAdminReport(report.id, { status: 'resolved' });
-              Alert.alert('تم الحظر', `تم حظر [${reportedName}] وإغلاق البلاغ بنجاح.`);
-              setReports(prev =>
-                prev.map(r => (r.id === report.id ? { ...r, status: 'resolved' } : r))
-              );
-            } catch (err) {
-              Alert.alert('خطأ', err.message || 'تعذر حظر الحساب.');
-            }
-          },
-        },
-      ]
-    );
+    showConfirm({
+      type: 'warning',
+      title: 'حظر المستخدم المبلغ عنه',
+      message: `هل تود حظر [${reportedName}] نهائياً من المنصة بسبب هذا البلاغ؟`,
+      confirmText: 'تأكيد الحظر',
+      confirmButtonColor: '#EF4444',
+      cancelText: 'إلغاء',
+      onConfirm: async () => {
+        try {
+          await api.toggleBanUser(reportedId);
+          await api.updateAdminReport(report.id, { status: 'resolved' });
+          showSuccess('تم الحظر', `تم حظر [${reportedName}] وإغلاق البلاغ بنجاح.`);
+          setReports(prev =>
+            prev.map(r => (r.id === report.id ? { ...r, status: 'resolved' } : r))
+          );
+        } catch (err) {
+          showError('خطأ', err.message || 'تعذر حظر الحساب.');
+        }
+      },
+    });
   };
 
   const renderReportItem = ({ item }) => {
