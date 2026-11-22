@@ -12,6 +12,7 @@ import EditProfileScreen from '../screens/main/EditProfileScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import SubscriptionScreen from '../screens/main/SubscriptionScreen';
 import SettingsScreen from '../screens/main/SettingsScreen';
+import NotificationsScreen from '../screens/main/NotificationsScreen';
 import TermsScreen from '../screens/static/TermsScreen';
 import PrivacyScreen from '../screens/static/PrivacyScreen';
 import AboutScreen from '../screens/static/AboutScreen';
@@ -57,6 +58,7 @@ export default function AppNavigator() {
         <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
         <Stack.Screen name="SubscriptionScreen" component={SubscriptionScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Terms" component={TermsScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
         <Stack.Screen name="About" component={AboutScreen} />
@@ -74,6 +76,7 @@ export default function AppNavigator() {
       <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
       <Stack.Screen name="SubscriptionScreen" component={SubscriptionScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} />
       <Stack.Screen name="Privacy" component={PrivacyScreen} />
       <Stack.Screen name="About" component={AboutScreen} />

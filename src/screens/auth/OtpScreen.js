@@ -6,14 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { api } from '../../api/client';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function OtpScreen({ route, navigation }) {
+  const { showSuccess, showError, showWarning } = useAlert();
   const { email, phone, password, auth_method } = route.params || {};
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,7 +23,7 @@ export default function OtpScreen({ route, navigation }) {
 
   const handleVerify = async () => {
     if (!code.trim() || code.trim().length < 4) {
-      Alert.alert('تنبيه', 'يرجى إدخال رمز التحقق بشكل صحيح');
+      showWarning('تنبيه', 'يرجى إدخال رمز التحقق بشكل صحيح');
       return;
     }
 
@@ -36,7 +37,7 @@ export default function OtpScreen({ route, navigation }) {
         code: code.trim(),
       });
     } catch (err) {
-      Alert.alert('خطأ في التحقق', err.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
+      showError('خطأ في التحقق', err.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
     } finally {
       setLoading(false);
     }
@@ -50,9 +51,9 @@ export default function OtpScreen({ route, navigation }) {
         email: email || null,
         phone: phone || null,
       });
-      Alert.alert('تم الإرسال', res.message || 'تم إرسال رمز تحقق جديد');
+      showSuccess('تم الإرسال 🎉', res.message || 'تم إرسال رمز تحقق جديد');
     } catch (err) {
-      Alert.alert('تعذر الإرسال', err.message || 'حدث خطأ أثناء إعادة إرسال الرمز');
+      showError('تعذر الإرسال', err.message || 'حدث خطأ أثناء إعادة إرسال الرمز');
     } finally {
       setResending(false);
     }

@@ -55,6 +55,14 @@ export default function MoreScreen({ navigation }) {
       bgColor: '#EEF2FF',
       onPress: () => navigation.navigate('Settings'),
     },
+    {
+      id: 'notifications',
+      title: 'التنبيهات والرسائل',
+      icon: 'notifications-outline',
+      color: '#F59E0B',
+      bgColor: '#FFFBEB',
+      onPress: () => navigation.navigate('Notifications'),
+    },
     // Subscriptions only apply to grooms (male) - brides are completely free
     ...(isMale
       ? [

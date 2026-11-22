@@ -15,9 +15,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function RegisterScreen({ navigation }) {
+  const { showSuccess, showError, showWarning, showConfirm } = useAlert();
   const [step, setStep] = useState(1); // 1: Info, 2: OTP (for email)
   const [authMethod, setAuthMethod] = useState('phone'); // 'phone' | 'email'
   const [phone, setPhone] = useState('');
@@ -81,7 +83,7 @@ export default function RegisterScreen({ navigation }) {
 
       if (authMethod === 'email') {
         setStep(2);
-        Alert.alert(
+        showSuccess(
           'تم التسجيل المبدئي 🎉',
           'تم إرسال كود التحقق لبريدك الإلكتروني، يرجى إدخاله لتفعيل الحساب.'
         );
@@ -93,17 +95,21 @@ export default function RegisterScreen({ navigation }) {
             phone: phone.trim(),
             password,
           });
-          Alert.alert('تم إنشاء الحساب بنجاح! 🎉', 'مرحباً بك في منصة نصفي الآخر.');
+          showSuccess('تم إنشاء الحساب بنجاح! 🎉', 'مرحباً بك في منصة نصفي الآخر.');
         } catch (loginErr) {
-          Alert.alert(
-            'تم إنشاء الحساب',
-            'تم إنشاء حسابك بنجاح، يمكنك الآن تسجيل الدخول مباشرة.',
-            [{ text: 'تسجيل الدخول', onPress: () => navigation.navigate('Login') }]
-          );
+          showConfirm({
+            type: 'success',
+            title: 'تم إنشاء الحساب 🎉',
+            message: 'تم إنشاء حسابك بنجاح، يمكنك الآن تسجيل الدخول مباشرة.',
+            confirmText: 'تسجيل الدخول',
+            cancelText: 'إغلاق',
+            confirmButtonColor: '#E91E63',
+            onConfirm: () => navigation.navigate('Login'),
+          });
         }
       }
     } catch (err) {
-      Alert.alert('تنبيه', err.message || 'حدث خطأ أثناء إنشاء الحساب');
+      showError('تنبيه', err.message || 'حدث خطأ أثناء إنشاء الحساب');
     } finally {
       setLoading(false);
     }
@@ -125,16 +131,16 @@ export default function RegisterScreen({ navigation }) {
         password,
         code: otp.trim(),
       });
-      Alert.alert('تم تفعيل الحساب بنجاح! 🎉', 'مرحباً بك في منصتنا.');
+      showSuccess('تم تفعيل الحساب بنجاح! 🎉', 'مرحباً بك في منصتنا.');
     } catch (err) {
-      Alert.alert('خطأ', err.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
+      showError('خطأ', err.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
     } finally {
       setLoading(false);
     }
   };
 
   const showInfoModal = (title, message) => {
-    Alert.alert(title, message, [{ text: 'حسناً' }]);
+    showWarning(title, message);
   };
 
   return (

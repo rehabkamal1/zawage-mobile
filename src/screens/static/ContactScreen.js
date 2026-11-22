@@ -1,15 +1,18 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar, Linking, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, StatusBar, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useAlert } from '../../context/AlertContext';
 import { APP_CONFIG } from '../../constants/config';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function ContactScreen({ navigation }) {
+  const { showWarning } = useAlert();
+
   const openWhatsApp = () => {
     const text = encodeURIComponent('السلام عليكم، أحتاج مساعدة أو استفسار بخصوص منصة نصفي الآخر.');
     Linking.openURL(`whatsapp://send?phone=${APP_CONFIG.WHATSAPP_SUPPORT}&text=${text}`).catch(() => {
-      Alert.alert('تنبيه', 'يرجى التأكد من تثبيت تطبيق واتساب على هاتفك.');
+      showWarning('تنبيه', 'يرجى التأكد من تثبيت تطبيق واتساب على هاتفك.');
     });
   };
 

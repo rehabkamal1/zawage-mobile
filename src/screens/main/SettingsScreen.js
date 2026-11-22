@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,37 +7,70 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
+  Switch,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function SettingsScreen({ navigation }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const { showSuccess, showError, showWarning } = useAlert();
 
+  const [activeTab, setActiveTab] = useState('security'); // 'security' | 'notifications'
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
+  // Notifications Preferences (Parity with UserSettings.jsx)
+  const [notifyNewMatch, setNotifyNewMatch] = useState(true);
+  const [notifyProfileLike, setNotifyProfileLike] = useState(true);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const matchPref = await AsyncStorage.getItem('notify_new_match');
+      const likePref = await AsyncStorage.getItem('notify_profile_like');
+      if (matchPref !== null) setNotifyNewMatch(matchPref === 'true');
+      if (likePref !== null) setNotifyProfileLike(likePref === 'true');
+    } catch (e) {
+      console.log('Error loading settings', e);
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    try {
+      await AsyncStorage.setItem('notify_new_match', String(notifyNewMatch));
+      await AsyncStorage.setItem('notify_profile_like', String(notifyProfileLike));
+      showSuccess('تم بنجاح 🎉', 'تم حفظ تفضيلات التنبيهات بنجاح.');
+    } catch (e) {
+      showError('خطأ', 'تعذر حفظ إعدادات التنبيهات.');
+    }
+  };
+
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('تنبيه', 'يرجى إدخال كلمة المرور الحالية وكلمة المرور الجديدة وتأكيدها.');
+      showWarning('تنبيه', 'يرجى إدخال كلمة المرور الحالية وكلمة المرور الجديدة وتأكيدها.');
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert('تنبيه', 'كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف أو أرقام.');
+      showWarning('تنبيه', 'كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف أو أرقام.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('تنبيه', 'كلمة المرور الجديدة وتأكيدها غير متطابقين.');
+      showWarning('خطأ', 'كلمة المرور الجديدة غير متطابقة.');
       return;
     }
 
@@ -45,246 +78,400 @@ export default function SettingsScreen({ navigation }) {
     try {
       const res = await api.updatePassword({
         current_password: currentPassword,
-        new_password: newPassword,
-        new_password_confirmation: confirmPassword,
+        password: newPassword,
+        password_confirmation: confirmPassword,
       });
 
-      Alert.alert('تم بنجاح 🎉', res.message || 'تم تحديث كلمة المرور بنجاح.');
+      showSuccess('تم بنجاح 🎉', res.message || 'تم تحديث كلمة المرور بنجاح.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (e) {
-      Alert.alert('تعذر التحديث', e.message || 'كلمة المرور الحالية غير صحيحة.');
+      showError('خطأ', e.message || 'فشل تحديث كلمة المرور. يرجى التحقق من كلمة المرور الحالية.');
     } finally {
       setSavingPassword(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-forward" size={22} color="#2D1B4D" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>إعدادات الحساب والأمان</Text>
+        <Text style={styles.headerTitle}>إعدادات الحساب</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Account Info Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>بيانات الحساب</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoVal}>{user?.name}</Text>
-            <Text style={styles.infoKey}>الاسم المسجل:</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoVal}>{user?.phone || 'غير مسجل'}</Text>
-            <Text style={styles.infoKey}>رقم الهاتف:</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoVal}>{user?.email || 'غير مسجل'}</Text>
-            <Text style={styles.infoKey}>البريد الإلكتروني:</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoVal}>{user?.gender === 'male' ? 'عريس (شاب)' : 'عروسة (فتاة)'}</Text>
-            <Text style={styles.infoKey}>الجنس:</Text>
-          </View>
-        </View>
-
-        {/* Change Password Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>تغيير كلمة المرور</Text>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>كلمة المرور الحالية</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              placeholderTextColor="#94A3B8"
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              secureTextEntry={!showPassword}
-              textAlign="right"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>كلمة المرور الجديدة</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              placeholderTextColor="#94A3B8"
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry={!showPassword}
-              textAlign="right"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>تأكيد كلمة المرور الجديدة</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              placeholderTextColor="#94A3B8"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showPassword}
-              textAlign="right"
-            />
-          </View>
-
-          <TouchableOpacity
-            style={styles.showPassRow}
-            onPress={() => setShowPassword(!showPassword)}
-          >
-            <Text style={styles.showPassText}>{showPassword ? 'إخفاء كلمات المرور' : 'إظهار كلمات المرور'}</Text>
-            <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="#64748B" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.saveBtn}
-            onPress={handleChangePassword}
-            disabled={savingPassword}
-          >
-            {savingPassword ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.saveBtnText}>حفظ كلمة المرور الجديدة</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Legal & Support Links */}
-        <View style={styles.card}>
-          <TouchableOpacity
-            style={styles.navLinkRow}
-            onPress={() => navigation.navigate('Terms')}
-          >
-            <Ionicons name="chevron-back" size={18} color="#8B94B7" />
-            <Text style={styles.navLinkText}>شروط الاستخدام والضوابط الشرعية</Text>
-            <Ionicons name="document-text-outline" size={20} color="#E91E63" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.navLinkRow}
-            onPress={() => navigation.navigate('Privacy')}
-          >
-            <Ionicons name="chevron-back" size={18} color="#8B94B7" />
-            <Text style={styles.navLinkText}>سياسة الخصوصية وأمان البيانات</Text>
-            <Ionicons name="shield-checkmark-outline" size={20} color="#0284C7" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.navLinkRow}
-            onPress={() => navigation.navigate('Contact')}
-          >
-            <Ionicons name="chevron-back" size={18} color="#8B94B7" />
-            <Text style={styles.navLinkText}>اتصل بنا والدعم الفني</Text>
-            <Ionicons name="headset-outline" size={20} color="#059669" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout} activeOpacity={0.88}>
-          <Ionicons name="log-out-outline" size={20} color="#E11D48" style={{ marginLeft: 6 }} />
-          <Text style={styles.logoutBtnText}>تسجيل الخروج من الحساب</Text>
+      {/* Tab Switcher (Parity with UserSettings.jsx: الأمان & التنبيهات) */}
+      <View style={styles.tabsBar}>
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === 'security' && styles.tabItemActive]}
+          onPress={() => setActiveTab('security')}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="shield-checkmark"
+            size={18}
+            color={activeTab === 'security' ? '#E91E63' : '#8B94B7'}
+            style={{ marginLeft: 6 }}
+          />
+          <Text style={[styles.tabItemText, activeTab === 'security' && styles.tabItemTextActive]}>
+            الأمان
+          </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === 'notifications' && styles.tabItemActive]}
+          onPress={() => setActiveTab('notifications')}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="notifications"
+            size={18}
+            color={activeTab === 'notifications' ? '#E91E63' : '#8B94B7'}
+            style={{ marginLeft: 6 }}
+          />
+          <Text style={[styles.tabItemText, activeTab === 'notifications' && styles.tabItemTextActive]}>
+            التنبيهات
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* TAB 1: SECURITY (الأمان) */}
+        {activeTab === 'security' && (
+          <>
+            {/* Account Info Summary Card */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>بيانات الحساب المسجلة</Text>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoVal}>{user?.name}</Text>
+                <Text style={styles.infoKey}>الاسم المسجل:</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoVal}>{user?.phone || 'غير مسجل'}</Text>
+                <Text style={styles.infoKey}>رقم الهاتف:</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoVal}>{user?.email || 'غير مسجل'}</Text>
+                <Text style={styles.infoKey}>البريد الإلكتروني:</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoVal}>{user?.gender === 'male' ? 'عريس' : 'عروسة'}</Text>
+                <Text style={styles.infoKey}>نوع الحساب:</Text>
+              </View>
+            </View>
+
+            {/* Change Password Card */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>تغيير كلمة المرور</Text>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>كلمة المرور الحالية</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="كلمة المرور الحالية"
+                  placeholderTextColor="#94A3B8"
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  secureTextEntry={!showPassword}
+                  textAlign="right"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>كلمة المرور الجديدة</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="كلمة المرور الجديدة"
+                  placeholderTextColor="#94A3B8"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={!showPassword}
+                  textAlign="right"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>تأكيد كلمة المرور الجديدة</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="تأكيد كلمة المرور الجديدة"
+                  placeholderTextColor="#94A3B8"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showPassword}
+                  textAlign="right"
+                />
+              </View>
+
+              <TouchableOpacity
+                style={styles.showPassBtn}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color="#64748B"
+                  style={{ marginLeft: 6 }}
+                />
+                <Text style={styles.showPassText}>
+                  {showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.submitBtn}
+                onPress={handleChangePassword}
+                disabled={savingPassword}
+                activeOpacity={0.88}
+              >
+                {savingPassword ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="save-outline" size={19} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                    <Text style={styles.submitBtnText}>حفظ كلمة المرور الجديدة</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+
+        {/* TAB 2: NOTIFICATIONS (التنبيهات) */}
+        {activeTab === 'notifications' && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>تفضيلات التنبيهات والإشعارات</Text>
+            <Text style={styles.cardSubtitle}>
+              حدد الإشعارات التي ترغب في تلقيها لمتابعة مستجدات حسابك والتوافق الشرعي:
+            </Text>
+
+            <View style={styles.toggleRow}>
+              <Switch
+                value={notifyNewMatch}
+                onValueChange={setNotifyNewMatch}
+                trackColor={{ false: '#CBD5E1', true: '#FCE7F3' }}
+                thumbColor={notifyNewMatch ? '#E91E63' : '#F1F5F9'}
+              />
+              <View style={styles.toggleTextContainer}>
+                <Text style={styles.toggleTitle}>استلام تنبيهات عند وجود ترشيح وتوافق جديد</Text>
+                <Text style={styles.toggleSub}>إشعارك فور تسجيل شريك مطابق لمواصفاتك</Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.toggleRow}>
+              <Switch
+                value={notifyProfileLike}
+                onValueChange={setNotifyProfileLike}
+                trackColor={{ false: '#CBD5E1', true: '#FCE7F3' }}
+                thumbColor={notifyProfileLike ? '#E91E63' : '#F1F5F9'}
+              />
+              <View style={styles.toggleTextContainer}>
+                <Text style={styles.toggleTitle}>استلام تنبيهات عند إعجاب أحدهم بملفي</Text>
+                <Text style={styles.toggleSub}>إشعارك عند إضافة استمارتك إلى قائمة المفضلات</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.submitBtn}
+              onPress={handleSaveNotifications}
+              activeOpacity={0.88}
+            >
+              <Ionicons name="save-outline" size={19} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Text style={styles.submitBtnText}>حفظ تفضيلات التنبيهات</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F8F9FE' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FAFAFD',
+  },
   header: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 14,
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
+    borderBottomWidth: 1.5,
     borderBottomColor: '#F1F4F9',
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F8F9FE',
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { fontSize: 17, fontWeight: '900', color: '#2D1B4D' },
-  content: { padding: 18, paddingBottom: 40 },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
-    ...SHADOWS.card,
-  },
-  cardTitle: { fontSize: 15, fontWeight: '900', color: '#2D1B4D', textAlign: 'right', marginBottom: 14 },
-  infoRow: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F8F9FE',
-  },
-  infoKey: { fontSize: 12.5, fontWeight: '700', color: '#8B94B7' },
-  infoVal: { fontSize: 13, fontWeight: '800', color: '#2D1B4D' },
-  inputGroup: { marginBottom: 12 },
-  inputLabel: { fontSize: 12.5, fontWeight: '700', color: '#64748B', textAlign: 'right', marginBottom: 6 },
-  input: {
-    backgroundColor: '#F8F9FE',
-    borderWidth: 1.5,
-    borderColor: '#E8ECF4',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 14,
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '900',
     color: '#2D1B4D',
-    fontWeight: '700',
   },
-  showPassRow: {
+  tabsBar: {
     flexDirection: 'row-reverse',
-    alignItems: 'center',
-    gap: 6,
-    marginVertical: 10,
-    justifyContent: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F4F9',
   },
-  showPassText: { fontSize: 12.5, fontWeight: '700', color: '#64748B' },
-  saveBtn: {
-    backgroundColor: '#E91E63',
-    borderRadius: 14,
-    paddingVertical: 13,
-    alignItems: 'center',
-    marginTop: 6,
-    ...SHADOWS.glow,
-  },
-  saveBtnText: { fontSize: 14.5, fontWeight: '900', color: '#FFFFFF' },
-  navLinkRow: {
+  tabItem: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F8F9FE',
+    paddingHorizontal: 20,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
   },
-  navLinkText: { flex: 1, fontSize: 13.5, fontWeight: '700', color: '#2D1B4D', textAlign: 'right', marginRight: 12 },
-  logoutBtn: {
+  tabItemActive: {
+    borderBottomColor: '#E91E63',
+  },
+  tabItemText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#8B94B7',
+  },
+  tabItemTextActive: {
+    color: '#E91E63',
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#F1F4F9',
+    ...SHADOWS.small,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#2D1B4D',
+    marginBottom: 8,
+    textAlign: 'right',
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 16,
+    textAlign: 'right',
+    lineHeight: 20,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  infoKey: {
+    fontSize: 13,
+    color: '#8B94B7',
+    fontWeight: '700',
+  },
+  infoVal: {
+    fontSize: 14,
+    color: '#2D1B4D',
+    fontWeight: '800',
+  },
+  inputGroup: {
+    marginBottom: 14,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#475569',
+    marginBottom: 6,
+    textAlign: 'right',
+  },
+  input: {
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2D1B4D',
+    backgroundColor: '#F8FAFC',
+  },
+  showPassBtn: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    marginBottom: 18,
+    alignSelf: 'flex-start',
+  },
+  showPassText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  submitBtn: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF1F2',
-    borderWidth: 1.5,
-    borderColor: '#FECDD3',
-    borderRadius: 16,
+    backgroundColor: '#E91E63',
     paddingVertical: 14,
-    marginTop: 4,
+    borderRadius: 25,
+    marginTop: 8,
+    ...SHADOWS.small,
   },
-  logoutBtnText: { fontSize: 14, fontWeight: '900', color: '#E11D48' },
+  submitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  toggleTextContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+    marginRight: 14,
+  },
+  toggleTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#2D1B4D',
+    textAlign: 'right',
+    marginBottom: 4,
+  },
+  toggleSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8B94B7',
+    textAlign: 'right',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F1F4F9',
+    marginVertical: 6,
+  },
 });

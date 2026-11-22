@@ -79,6 +79,68 @@ const ACCOMMODATION_OPTIONS = [
   { label: 'سكن عائلي (بيت عيلة)', value: 'family' },
 ];
 
+const DAYS = Array.from({ length: 31 }, (_, i) => {
+  const d = String(i + 1).padStart(2, '0');
+  return { label: d, value: d };
+});
+
+const MONTHS = [
+  { label: '01 - يناير', value: '01' },
+  { label: '02 - فبراير', value: '02' },
+  { label: '03 - مارس', value: '03' },
+  { label: '04 - أبريل', value: '04' },
+  { label: '05 - مايو', value: '05' },
+  { label: '06 - يونيو', value: '06' },
+  { label: '07 - يوليو', value: '07' },
+  { label: '08 - أغسطس', value: '08' },
+  { label: '09 - سبتمبر', value: '09' },
+  { label: '10 - أكتوبر', value: '10' },
+  { label: '11 - نوفمبر', value: '11' },
+  { label: '12 - ديسمبر', value: '12' },
+];
+
+const currentSysYear = new Date().getFullYear();
+const YEARS = Array.from({ length: 65 }, (_, i) => {
+  const y = String(currentSysYear - 17 - i);
+  return { label: y, value: y };
+});
+
+const CHILDREN_OPTIONS = [
+  { label: 'لا يوجد أطفال', value: 'no' },
+  { label: 'نعم يوجد أطفال', value: 'yes' },
+];
+
+const CUSTODY_OPTIONS = [
+  { label: 'الحضانة معي', value: 'معي' },
+  { label: 'مع والدهم', value: 'مع والدهم' },
+  { label: 'مشتركة', value: 'مشتركة' },
+  { label: 'أخرى', value: 'أخرى' },
+];
+
+function getDobParts(dobStr) {
+  if (!dobStr) return { year: '1995', month: '01', day: '01' };
+  if (dobStr.includes('-')) {
+    const p = dobStr.split('-');
+    if (p.length === 3 && p[0].length === 4) {
+      return { year: p[0], month: p[1].padStart(2, '0'), day: p[2].padStart(2, '0') };
+    }
+  }
+  return { year: '1995', month: '01', day: '01' };
+}
+
+function calculateAgeFromDob(dobStr) {
+  if (!dobStr) return null;
+  const { year, month, day } = getDobParts(dobStr);
+  const birthDate = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return isNaN(age) ? null : age;
+}
+
 export default function EditProfileScreen({ navigation }) {
   const { user, updateUserProfile } = useAuth();
   const { showSuccess, showError, showWarning, showConfirm } = useAlert();
@@ -192,8 +254,28 @@ export default function EditProfileScreen({ navigation }) {
   };
 
   const handleSelectOption = (value) => {
-    updateField(pickerConfig.key, value);
+    if (pickerConfig.key === 'dob_day') {
+      handleDobPartChange('day', value);
+    } else if (pickerConfig.key === 'dob_month') {
+      handleDobPartChange('month', value);
+    } else if (pickerConfig.key === 'dob_year') {
+      handleDobPartChange('year', value);
+    } else {
+      updateField(pickerConfig.key, value);
+    }
     setPickerVisible(false);
+  };
+
+  const handleDobPartChange = (part, val) => {
+    const parts = getDobParts(formData.dob);
+    let y = parts.year;
+    let m = parts.month;
+    let d = parts.day;
+    if (part === 'year') y = val;
+    if (part === 'month') m = val;
+    if (part === 'day') d = val;
+    const newDob = `${y}-${m}-${d}`;
+    updateField('dob', newDob);
   };
 
   const cleanStr = (val) => (val === null || val === undefined ? '' : String(val).trim());
@@ -208,8 +290,25 @@ export default function EditProfileScreen({ navigation }) {
         showWarning('تنبيه', 'يرجى إدخال رقم هاتف صحيح (11 رقم).');
         return false;
       }
+      if (!cleanStr(formData.dob)) {
+        showWarning('تنبيه', 'يرجى تحديد تاريخ الميلاد.');
+        return false;
+      }
+      const calculatedAge = calculateAgeFromDob(formData.dob);
+      if (calculatedAge === null || calculatedAge < 17) {
+        showWarning('تنبيه', 'عذراً، يجب أن يكون العمر 17 سنة على الأقل.');
+        return false;
+      }
       if (!cleanStr(formData.marital_status)) {
         showWarning('تنبيه', 'يرجى تحديد الحالة الاجتماعية.');
+        return false;
+      }
+      if (formData.has_children === 'yes' && (!formData.children_count || String(formData.children_count).trim() === '')) {
+        showWarning('تنبيه', 'يرجى إدخال عدد الأطفال.');
+        return false;
+      }
+      if (isFemale && formData.has_children === 'yes' && !cleanStr(formData.custody)) {
+        showWarning('تنبيه', 'يرجى تحديد الحضانة مع من.');
         return false;
       }
       if (!cleanStr(formData.education)) {
@@ -289,6 +388,8 @@ export default function EditProfileScreen({ navigation }) {
         req_age_min: formData.req_age_min ? parseInt(formData.req_age_min, 10) : 18,
         req_age_max: formData.req_age_max ? parseInt(formData.req_age_max, 10) : 60,
         has_children: formData.has_children === 'yes',
+        children_count: formData.has_children === 'yes' && formData.children_count ? parseInt(formData.children_count, 10) : null,
+        custody: isFemale && formData.has_children === 'yes' ? cleanStr(formData.custody) : null,
         move_other_gov: formData.move_other_gov === 'yes',
         family_house: formData.family_house === 'yes',
         accept_polygamy: formData.accept_polygamy === 'yes',
@@ -397,7 +498,17 @@ export default function EditProfileScreen({ navigation }) {
             <SummaryRow label="الاسم بالكامل" value={formData.full_name} />
             <SummaryRow label="الاسم المستعار" value={formData.nickname || formData.full_name} />
             <SummaryRow label="رقم الهاتف" value={formData.phone} />
+            <SummaryRow
+              label="تاريخ الميلاد"
+              value={`${formData.dob} (${calculateAgeFromDob(formData.dob) ? calculateAgeFromDob(formData.dob) + ' سنة' : ''})`}
+            />
             <SummaryRow label="الحالة الاجتماعية" value={getMaritalLabel(formData.marital_status, isFemale)} />
+            {formData.has_children === 'yes' && (
+              <SummaryRow label="الأطفال" value={`نعم (${formData.children_count || 1})`} />
+            )}
+            {isFemale && formData.has_children === 'yes' && (
+              <SummaryRow label="الحضانة" value={formData.custody || '-'} />
+            )}
             <SummaryRow label="المؤهل الدراسي" value={formData.education} />
             <SummaryRow label="الوظيفة / العمل" value={formData.job} />
             {!isFemale && <SummaryRow label="الدخل الشهري" value={formData.income || 'غير محدد'} />}
@@ -512,6 +623,51 @@ export default function EditProfileScreen({ navigation }) {
               placeholder="مثال: 01012345678"
             />
 
+            {/* DOB Picker */}
+            <View style={styles.inputGroup}>
+              <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={styles.label}>تاريخ الميلاد (يوم / شهر / سنة) *</Text>
+                {calculateAgeFromDob(formData.dob) ? (
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#E91E63' }}>
+                    (العمر: {calculateAgeFromDob(formData.dob)} سنة)
+                  </Text>
+                ) : null}
+              </View>
+
+              <View style={{ flexDirection: 'row-reverse', gap: 6 }}>
+                <View style={{ flex: 1 }}>
+                  <PickerField
+                    label=""
+                    value={getDobParts(formData.dob).day}
+                    placeholder="اليوم"
+                    onPress={() =>
+                      openPicker('اختر يوم الميلاد', 'dob_day', DAYS)
+                    }
+                  />
+                </View>
+                <View style={{ flex: 1.4 }}>
+                  <PickerField
+                    label=""
+                    value={MONTHS.find(m => m.value === getDobParts(formData.dob).month)?.label || getDobParts(formData.dob).month}
+                    placeholder="الشهر"
+                    onPress={() =>
+                      openPicker('اختر شهر الميلاد', 'dob_month', MONTHS)
+                    }
+                  />
+                </View>
+                <View style={{ flex: 1.2 }}>
+                  <PickerField
+                    label=""
+                    value={getDobParts(formData.dob).year}
+                    placeholder="السنة"
+                    onPress={() =>
+                      openPicker('اختر سنة الميلاد', 'dob_year', YEARS)
+                    }
+                  />
+                </View>
+              </View>
+            </View>
+
             <PickerField
               label="الحالة الاجتماعية *"
               value={getMaritalLabel(formData.marital_status, isFemale)}
@@ -524,6 +680,36 @@ export default function EditProfileScreen({ navigation }) {
                 )
               }
             />
+
+            <PickerField
+              label="هل يوجد أطفال؟"
+              value={formData.has_children === 'yes' ? 'نعم يوجد أطفال' : 'لا يوجد أطفال'}
+              placeholder="اختر..."
+              onPress={() =>
+                openPicker('هل يوجد أطفال؟', 'has_children', CHILDREN_OPTIONS)
+              }
+            />
+
+            {formData.has_children === 'yes' && (
+              <InputField
+                label="عدد الأطفال *"
+                value={String(formData.children_count || '')}
+                onChangeText={(v) => updateField('children_count', v.replace(/\D/g, ''))}
+                keyboardType="numeric"
+                placeholder="مثال: 1 أو 2"
+              />
+            )}
+
+            {isFemale && formData.has_children === 'yes' && (
+              <PickerField
+                label="الحضانة مع من؟ *"
+                value={formData.custody || 'اختر...'}
+                placeholder="اختر مكان الحضانة..."
+                onPress={() =>
+                  openPicker('الحضانة مع من؟', 'custody', CUSTODY_OPTIONS)
+                }
+              />
+            )}
 
             <InputField
               label="المؤهل الدراسي *"
@@ -752,6 +938,70 @@ export default function EditProfileScreen({ navigation }) {
               }
             />
 
+            {!isFemale ? (
+              <>
+                <PickerField
+                  label="نوع الحجاب المطلوب لشريكة الحياة *"
+                  value={getHijabLabel(formData.req_hijab)}
+                  placeholder="اختر نوع الحجاب المطلوب..."
+                  onPress={() =>
+                    openPicker('نوع الحجاب المطلوب', 'req_hijab', [
+                      { label: 'لا يهم / أي نوع', value: 'any' },
+                      ...HIJAB_OPTIONS,
+                    ])
+                  }
+                />
+                <PickerField
+                  label="الالتزام بالصلاة المطلوب *"
+                  value={getPrayerLabel(formData.req_prayer)}
+                  placeholder="اختر درجة الالتزام بالصلاة..."
+                  onPress={() =>
+                    openPicker('الالتزام بالصلاة المطلوب', 'req_prayer', [
+                      { label: 'لا يهم', value: 'any' },
+                      ...PRAYER_OPTIONS,
+                    ])
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <InputField
+                  label="المؤهل الدراسي المطلوب في الزوج"
+                  value={formData.req_education}
+                  onChangeText={(v) => updateField('req_education', v)}
+                  placeholder="مثال: مؤهل عالي / لا يشترط"
+                />
+                <InputField
+                  label="الوظيفة المطلوبة في الزوج"
+                  value={formData.req_job}
+                  onChangeText={(v) => updateField('req_job', v)}
+                  placeholder="مثال: عمل ثابت / لا يشترط"
+                />
+                <PickerField
+                  label="الموقف من التدخين *"
+                  value={getSmokingLabel(formData.req_smoking)}
+                  placeholder="اختر موقفك من تدخين الشريك..."
+                  onPress={() =>
+                    openPicker('الموقف من التدخين', 'req_smoking', [
+                      { label: 'لا يهم', value: 'any' },
+                      ...SMOKING_OPTIONS,
+                    ])
+                  }
+                />
+                <PickerField
+                  label="الالتزام بالصلاة المطلوب *"
+                  value={getPrayerLabel(formData.req_prayer)}
+                  placeholder="اختر درجة الالتزام بالصلاة..."
+                  onPress={() =>
+                    openPicker('الالتزام بالصلاة المطلوب', 'req_prayer', [
+                      { label: 'لا يهم', value: 'any' },
+                      ...PRAYER_OPTIONS,
+                    ])
+                  }
+                />
+              </>
+            )}
+
             <InputField
               label="المواصفات المطلوبة في شريك الحياة"
               value={formData.partner_specs}
@@ -781,15 +1031,29 @@ export default function EditProfileScreen({ navigation }) {
             <View style={styles.reviewBox}>
               <SummaryRow label="الاسم" value={formData.full_name} />
               <SummaryRow label="الهاتف" value={formData.phone} />
+              <SummaryRow
+                label="تاريخ الميلاد والسن"
+                value={`${formData.dob} (${calculateAgeFromDob(formData.dob) ? calculateAgeFromDob(formData.dob) + ' سنة' : ''})`}
+              />
               <SummaryRow label="الحالة الاجتماعية" value={getMaritalLabel(formData.marital_status, isFemale)} />
+              {formData.has_children === 'yes' && (
+                <SummaryRow label="الأطفال" value={`نعم (${formData.children_count || 1})`} />
+              )}
+              {isFemale && formData.has_children === 'yes' && (
+                <SummaryRow label="الحضانة" value={formData.custody || '-'} />
+              )}
               <SummaryRow label="المحافظة والمدينة" value={`${formData.governorate} - ${formData.area}`} />
               <SummaryRow label="المؤهل والوظيفة" value={`${formData.education} - ${formData.job}`} />
               <SummaryRow label="الالتزام بالصلاة" value={getPrayerLabel(formData.prayer)} />
               {isFemale ? (
-                <SummaryRow label="هاتف ولي الأمر" value={formData.guardian_phone} />
+                <>
+                  <SummaryRow label="نوع الحجاب" value={getHijabLabel(formData.hijab)} />
+                  <SummaryRow label="هاتف ولي الأمر" value={formData.guardian_phone} />
+                </>
               ) : (
                 <SummaryRow label="التدخين" value={getSmokingLabel(formData.smoking)} />
               )}
+              <SummaryRow label="المواصفات المطلوبة" value={formData.partner_specs || 'حسب الاستمارة'} />
             </View>
 
             <TouchableOpacity

@@ -15,9 +15,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function LoginScreen({ navigation }) {
+  const { showError, showWarning } = useAlert();
   const [authMethod, setAuthMethod] = useState('phone'); // 'phone' | 'email'
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -72,14 +74,14 @@ export default function LoginScreen({ navigation }) {
       await login(payload);
       // Navigation is automatically handled when isAuthenticated turns true
     } catch (err) {
-      Alert.alert('تعذر تسجيل الدخول', err.message || 'بيانات الدخول غير صحيحة');
+      showError('تعذر تسجيل الدخول', err.message || 'بيانات الدخول غير صحيحة');
     } finally {
       setLoading(false);
     }
   };
 
   const showInfoModal = (title, message) => {
-    Alert.alert(title, message, [{ text: 'حسناً' }]);
+    showWarning(title, message);
   };
 
   return (

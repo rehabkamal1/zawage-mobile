@@ -18,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { api, saveAuthData } from '../../api/client';
+import { useAlert } from '../../context/AlertContext';
 import PartnerCard from '../../components/PartnerCard';
 import { APP_CONFIG } from '../../constants/config';
 import { COLORS, SHADOWS } from '../../constants/theme';
@@ -27,6 +28,7 @@ const MARITAL_STATUSES = ['الكل', 'آنسة', 'مطلق', 'مطلقة', 'أ�
 const AGE_RANGES = ['الكل', '18-25', '26-35', '36+'];
 
 export default function HomeScreen({ navigation }) {
+  const { showConfirm, showSuccess, showError, showWarning } = useAlert();
   const [currentUser, setCurrentUser] = useState(null);
   const [allMatches, setAllMatches] = useState([]);
   const [visibleCount, setVisibleCount] = useState(6);
@@ -159,38 +161,51 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleUnlockContact = (partner) => {
-    Alert.alert(
-      'فك قفل بيانات التواصل',
-      `هل تود فك قفل استمارة (${partner.profile?.nickname || partner.name}) للتواصل مع ولي الأمر عبر واتساب؟`,
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'تأكيد وفك القفل',
-          onPress: async () => {
-            try {
-              const res = await api.unlockContact(partner.id);
-              Alert.alert('تهانينا 🎉', res.message || 'تم فك القفل بنجاح، يمكنك الآن التواصل عبر واتساب.');
-              setAllMatches(prev => prev.map(m => m.id === partner.id ? { ...m, is_unlocked: true, phone: res.phone } : m));
-              fetchData();
-            } catch (err) {
-              const msg = err.message || 'تعذر فك القفل';
-              if (err.data?.requires_subscription || err.data?.limit_reached) {
-                Alert.alert(
-                  'انتهى الرصيد ⚠️',
-                  msg,
-                  [
-                    { text: 'إلغاء', style: 'cancel' },
-                    { text: 'الاشتراك في باقة الآن 🚀', onPress: () => navigation.navigate('SubscriptionsTab') }
-                  ]
-                );
-              } else {
-                Alert.alert('تنبيه', msg);
-              }
-            }
+    showConfirm({
+      type: 'question',
+      title: 'فك قفل بيانات التواصل',
+      message: `هل تود فك قفل استمارة (${partner.profile?.nickname || partner.name}) للتواصل مع ولي الأمر عبر واتساب؟\nسيتم استهلاك 1 استمارة من رصيدك.`,
+      confirmText: 'نعم، فك القفل الآن',
+      cancelText: 'إلغاء',
+      confirmButtonColor: '#E91E63',
+      onConfirm: async () => {
+        try {
+          const res = await api.unlockContact(partner.id);
+          const msg = res.is_free_attempt
+            ? `تم فك قفل هذه الاستمارة بنجاح من رصيدك المجاني 🎁\nالمتبقي لديك: ${res.remaining ?? 0} من أصل ${res.views_allowed ?? 3} استمارات مجانية.`
+            : `تم خصم محاولة واحدة من رصيد باقتك 💳\nالمتبقي: ${res.remaining ?? 0} من أصل ${res.views_allowed ?? 0} محاولات.`;
+
+          showSuccess('تم فك القفل بنجاح! 🔓', msg);
+          setAllMatches(prev => prev.map(m => m.id === partner.id ? { ...m, is_unlocked: true, phone: res.phone } : m));
+          fetchData();
+        } catch (err) {
+          const msg = err.message || 'تعذر فك القفل';
+          if (err.data?.requires_subscription || err.data?.limit_reached) {
+            showConfirm({
+              type: 'warning',
+              title: err.data?.requires_subscription ? 'انتهت المحاولات المجانية (3 استمارات) ⚠️' : 'انتهى رصيد الباقة ⚠️',
+              message: msg,
+              confirmText: 'الاشتراك في باقة الآن 🚀',
+              cancelText: 'إلغاء',
+              confirmButtonColor: '#8B5CF6',
+              onConfirm: () => navigation.navigate('SubscriptionsTab'),
+            });
+          } else if (err.data?.requires_form) {
+            showConfirm({
+              type: 'warning',
+              title: 'يجب ملء الاستمارة أولاً',
+              message: msg || 'يجب ملء استمارتك أولاً لتتمكن من التواصل مع العروس.',
+              confirmText: 'ملء الاستمارة الآن',
+              cancelText: 'إلغاء',
+              confirmButtonColor: '#E91E63',
+              onConfirm: () => navigation.navigate('EditProfileTab'),
+            });
+          } else {
+            showError('تنبيه', msg);
           }
         }
-      ]
-    );
+      },
+    });
   };
 
   const displayedMatches = allMatches.slice(0, visibleCount);
@@ -212,12 +227,22 @@ export default function HomeScreen({ navigation }) {
           <Ionicons name="heart" size={17} color="#E91E63" style={{ marginRight: 4 }} />
         </View>
 
-        <TouchableOpacity
-          style={styles.navBookmarkBtn}
-          onPress={() => navigation.navigate('FavoritesTab')}
-        >
-          <Ionicons name="bookmark-outline" size={22} color="#2D1B4D" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            style={[styles.navBookmarkBtn, { marginLeft: 8 }]}
+            onPress={() => navigation.navigate('Notifications')}
+          >
+            <Ionicons name="notifications-outline" size={22} color="#2D1B4D" />
+          </TouchableOpacity>
+          {isMale && (
+            <TouchableOpacity
+              style={styles.navBookmarkBtn}
+              onPress={() => navigation.navigate('FavoritesTab')}
+            >
+              <Ionicons name="bookmark-outline" size={22} color="#2D1B4D" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {loading && !refreshing ? (

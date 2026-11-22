@@ -1,136 +1,235 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert,
+  ActivityIndicator,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { formatProfileValue } from '../../utils/formatProfileValue';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export default function ProfileScreen({ navigation }) {
-  const { user, logout } = useAuth();
+  const { user: authUser } = useAuth();
+  const [user, setUser] = useState(authUser);
+  const [loading, setLoading] = useState(!authUser);
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const res = await api.getMe();
+      if (res.user) {
+        setUser(res.user);
+      }
+    } catch (e) {
+      console.log('Error fetching user profile:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const profile = user?.profile || {};
   const isFemale = user?.gender === 'female';
 
-  const handleLogout = () => {
-    Alert.alert(
-      'تسجيل الخروج',
-      'هل أنت متأكد من رغبتك في تسجيل الخروج من التطبيق؟',
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'تسجيل الخروج',
-          style: 'destructive',
-          onPress: logout,
-        },
-      ]
-    );
+  const calculateAge = (dob) => {
+    if (!dob) return null;
+    const birthDate = new Date(dob);
+    if (isNaN(birthDate.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
   };
 
-  const MenuItem = ({ icon, title, subtitle, onPress, isDanger }) => (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-      <Ionicons name="chevron-back" size={18} color={COLORS.textLight} />
-      <View style={styles.menuItemTextContainer}>
-        <Text style={[styles.menuItemTitle, isDanger && styles.dangerText]}>{title}</Text>
-        {subtitle && <Text style={styles.menuItemSubtitle}>{subtitle}</Text>}
+  const age = calculateAge(profile.dob);
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#E91E63" />
+        <Text style={styles.loadingText}>جاري تحميل الملف الشخصي...</Text>
       </View>
-      <View style={[styles.menuIconCircle, isDanger && styles.dangerIconCircle]}>
-        <Ionicons name={icon} size={20} color={isDanger ? COLORS.danger : COLORS.primary} />
-      </View>
-    </TouchableOpacity>
-  );
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Header */}
+      {/* Top Header */}
       <View style={styles.topHeader}>
-        <Text style={styles.headerTitle}>حسابي الشخصي</Text>
+        {navigation.canGoBack() && (
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-forward" size={22} color="#2D1B4D" />
+          </TouchableOpacity>
+        )}
+        <Text style={styles.headerTitle}>ملفي الشخصي</Text>
+        <TouchableOpacity
+          style={styles.editHeaderBtn}
+          onPress={() => navigation.navigate('EditProfile')}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="create-outline" size={22} color="#E91E63" />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* User Card */}
-        <View style={styles.userCard}>
-          <View style={[styles.avatar, isFemale ? styles.femaleAvatar : styles.maleAvatar]}>
-            <Ionicons name={isFemale ? 'woman' : 'man'} size={40} color="#FFFFFF" />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Profile Summary Card (Matches Web Profile Sidebar Card) */}
+        <View style={styles.summaryCard}>
+          <View style={[styles.avatarCircle, isFemale ? styles.femaleAvatar : styles.maleAvatar]}>
+            <Ionicons name={isFemale ? 'woman' : 'man'} size={48} color="#FFFFFF" />
           </View>
 
-          <Text style={styles.userName}>{profile.nickname || user?.name || 'مستخدم نصفي الآخر'}</Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
+          <Text style={styles.nameText}>{profile.nickname || user?.name || 'مستخدم نصفي الآخر'}</Text>
+          <Text style={styles.roleText}>
+            {isFemale ? 'عروسة' : 'عريس'}{age ? ` • ${age} سنة` : ''}
+          </Text>
 
-          <View style={styles.badgeRow}>
-            <View style={[styles.badge, isFemale ? styles.femaleBadge : styles.maleBadge]}>
-              <Text style={styles.badgeText}>{isFemale ? 'عروسة' : 'عريس'}</Text>
+          <View style={styles.tagsRow}>
+            {profile.job ? (
+              <View style={styles.metaTag}>
+                <Ionicons name="briefcase-outline" size={13} color="#E91E63" style={{ marginLeft: 4 }} />
+                <Text style={styles.metaTagText}>{formatProfileValue(profile.job)}</Text>
+              </View>
+            ) : null}
+            {profile.governorate ? (
+              <View style={styles.metaTag}>
+                <Ionicons name="location-outline" size={13} color="#0284C7" style={{ marginLeft: 4 }} />
+                <Text style={styles.metaTagText}>{formatProfileValue(profile.governorate)}</Text>
+              </View>
+            ) : null}
+            {profile.marital_status ? (
+              <View style={styles.metaTag}>
+                <Ionicons name="heart-outline" size={13} color="#8B5CF6" style={{ marginLeft: 4 }} />
+                <Text style={styles.metaTagText}>{formatProfileValue(profile.marital_status)}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <TouchableOpacity
+            style={styles.editProfileBtn}
+            onPress={() => navigation.navigate('EditProfile')}
+            activeOpacity={0.88}
+          >
+            <Ionicons name="create-outline" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+            <Text style={styles.editProfileBtnText}>تعديل الاستمارة ✏️</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Section 1: Bio (نبذة عني) */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="star" size={20} color="#E91E63" style={{ marginLeft: 8 }} />
+            <Text style={styles.sectionHeaderTitle}>نبذة عني</Text>
+          </View>
+          <Text style={styles.bioText}>
+            {profile.bio || 'لا توجد نبذة حالياً. يمكنك تعديل استمارتك لإضافة نبذة تعريفية.'}
+          </Text>
+        </View>
+
+        {/* Section 2: Location & Housing (الموقع والسكن) */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="location" size={20} color="#0284C7" style={{ marginLeft: 8 }} />
+            <Text style={styles.sectionHeaderTitle}>الموقع والسكن</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoValue}>{formatProfileValue(profile.governorate, 'غير محدد')}</Text>
+            <Text style={styles.infoLabel}>المحافظة:</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoValue}>{formatProfileValue(profile.area, 'غير محدد')}</Text>
+            <Text style={styles.infoLabel}>المدينة / المركز:</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoValue}>
+              {profile.family_house === 'yes' || profile.family_house === true ? 'نعم (بيت عائلة)' : 'شقة مستقلة'}
+            </Text>
+            <Text style={styles.infoLabel}>السكن:</Text>
+          </View>
+          {!isFemale && profile.accommodation && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoValue}>{formatProfileValue(profile.accommodation)}</Text>
+              <Text style={styles.infoLabel}>نوع السكن:</Text>
             </View>
-            <View style={styles.activeBadge}>
-              <Text style={styles.activeBadgeText}>
-                {user?.is_banned ? 'حساب معلق' : 'حساب نشط'}
-              </Text>
+          )}
+        </View>
+
+        {/* Section 3: Education & Work (التعليم والعمل) */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="school" size={20} color="#8B5CF6" style={{ marginLeft: 8 }} />
+            <Text style={styles.sectionHeaderTitle}>التعليم والعمل والالتزام</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoValue}>{formatProfileValue(profile.education, 'غير محدد')}</Text>
+            <Text style={styles.infoLabel}>المؤهل الدراسي:</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoValue}>{formatProfileValue(profile.job, 'غير محدد')}</Text>
+            <Text style={styles.infoLabel}>الوظيفة / العمل:</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoValue}>{formatProfileValue(profile.prayer, 'غير محدد')}</Text>
+            <Text style={styles.infoLabel}>الالتزام بالصلاة:</Text>
+          </View>
+          {isFemale && profile.hijab && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoValue}>{formatProfileValue(profile.hijab)}</Text>
+              <Text style={styles.infoLabel}>نوع الحجاب:</Text>
             </View>
-          </View>
+          )}
+          {!isFemale && profile.smoking && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoValue}>{formatProfileValue(profile.smoking)}</Text>
+              <Text style={styles.infoLabel}>الموقف من التدخين:</Text>
+            </View>
+          )}
         </View>
 
-        {/* Menu Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHeader}>إدارة الاستمارة والحساب</Text>
-
-          <View style={styles.menuCard}>
-            <MenuItem
-              icon="create-outline"
-              title="تعديل بيانات الاستمارة"
-              subtitle="تحديث المواصفات الشخصية ومواصفات الشريك"
-              onPress={() => navigation.navigate('EditProfile')}
-            />
-            <MenuItem
-              icon="key-outline"
-              title="إعدادات الحساب وكلمة المرور"
-              subtitle="تحديث كلمة السر وحماية حسابك"
-              onPress={() => navigation.navigate('Settings')}
-            />
-            <MenuItem
-              icon="shield-checkmark-outline"
-              title="الضوابط الشرعية والأمان"
-              subtitle="تعرف على معايير الخصوصية والتواصل الحلال"
-              onPress={() => navigation.navigate('Terms')}
-            />
-            <MenuItem
-              icon="lock-closed-outline"
-              title="سياسة الخصوصية وحماية البيانات"
-              subtitle="كيف نحافظ على سرية بياناتك وتشفيرها"
-              onPress={() => navigation.navigate('Privacy')}
-            />
-            <MenuItem
-              icon="headset-outline"
-              title="اتصل بنا والدعم الفني"
-              subtitle="تواصل مع إدارة المنصة مباشرة عبر واتساب"
-              onPress={() => navigation.navigate('Contact')}
-            />
+        {/* Section 4: Partner Specs (شريك الحياة المطلوب) */}
+        <View style={[styles.sectionCard, styles.partnerSpecsCard]}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="heart" size={20} color="#E91E63" style={{ marginLeft: 8 }} />
+            <Text style={styles.sectionHeaderTitle}>شريك الحياة المطلوب</Text>
           </View>
-        </View>
 
-        {/* Support & Logout */}
-        <View style={styles.section}>
-          <View style={styles.menuCard}>
-            <MenuItem
-              icon="log-out-outline"
-              title="تسجيل الخروج"
-              isDanger
-              onPress={handleLogout}
-            />
+          <View style={styles.infoRow}>
+            <Text style={styles.infoValue}>
+              {profile.req_age_min ? `من ${profile.req_age_min} إلى ${profile.req_age_max || 60} سنة` : 'غير محدد'}
+            </Text>
+            <Text style={styles.infoLabel}>السن المطلوب:</Text>
           </View>
-        </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoValue}>{formatProfileValue(profile.req_governorate, 'الكل')}</Text>
+            <Text style={styles.infoLabel}>المحافظة المطلوبة:</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoValue}>{formatProfileValue(profile.req_marital_status, 'لا يهم / الكل')}</Text>
+            <Text style={styles.infoLabel}>الحالة الاجتماعية:</Text>
+          </View>
 
-        {/* App Version Info */}
-        <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>تطبيق نصفي الآخر v1.0.0</Text>
-          <Text style={styles.copyrightText}>جميع الحقوق محفوظة © 2026</Text>
+          <Text style={styles.partnerSpecsText}>
+            {profile.partner_specs || 'لم يتم تحديد مواصفات إضافية بعد. يمكنك تعديل استمارتك وتوضيح تطلعاتك للشريك.'}
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -140,152 +239,196 @@ export default function ProfileScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#FAFAFD',
   },
-  topHeader: {
-    alignItems: 'center',
-    paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: COLORS.secondary,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  userCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 22,
-    alignItems: 'center',
-    marginBottom: 20,
-    ...SHADOWS.small,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 28,
+  centerContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    backgroundColor: '#FAFAFD',
   },
-  maleAvatar: {
-    backgroundColor: COLORS.male,
-  },
-  femaleAvatar: {
-    backgroundColor: COLORS.female,
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.secondary,
-  },
-  userEmail: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    marginTop: 3,
-    marginBottom: 12,
-  },
-  badgeRow: {
-    flexDirection: 'row-reverse',
-    gap: 8,
-  },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  maleBadge: {
-    backgroundColor: '#E0F2FE',
-  },
-  femaleBadge: {
-    backgroundColor: '#FCE4EC',
-  },
-  badgeText: {
-    fontSize: 12,
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
     fontWeight: '700',
-    color: COLORS.text,
+    color: '#8B94B7',
   },
-  activeBadge: {
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  activeBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#059669',
-  },
-  section: {
-    marginBottom: 18,
-  },
-  sectionHeader: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.textMuted,
-    marginBottom: 8,
-    textAlign: 'right',
-    paddingHorizontal: 4,
-  },
-  menuCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    overflow: 'hidden',
-    ...SHADOWS.small,
-  },
-  menuItem: {
+  topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#F1F4F9',
   },
-  menuIconCircle: {
+  backBtn: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 12,
   },
-  dangerIconCircle: {
-    backgroundColor: '#FEE2E2',
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#2D1B4D',
   },
-  menuItemTextContainer: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  menuItemTitle: {
-    fontSize: 14.5,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  menuItemSubtitle: {
-    fontSize: 11.5,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  dangerText: {
-    color: COLORS.danger,
-  },
-  versionContainer: {
+  editHeaderBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FFF0F5',
     alignItems: 'center',
-    paddingVertical: 20,
+    justifyContent: 'center',
   },
-  versionText: {
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  summaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: '#F1F4F9',
+    ...SHADOWS.medium,
+  },
+  avatarCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+    ...SHADOWS.small,
+  },
+  maleAvatar: {
+    backgroundColor: '#0284C7',
+  },
+  femaleAvatar: {
+    backgroundColor: '#E91E63',
+  },
+  nameText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#2D1B4D',
+    marginBottom: 4,
+  },
+  roleText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#8B94B7',
+    marginBottom: 14,
+  },
+  tagsRow: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 18,
+  },
+  metaTag: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  metaTagText: {
     fontSize: 12,
-    color: COLORS.textLight,
-    fontWeight: '600',
+    fontWeight: '800',
+    color: '#475569',
   },
-  copyrightText: {
-    fontSize: 11,
-    color: COLORS.textLight,
-    marginTop: 2,
+  editProfileBtn: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E91E63',
+    paddingVertical: 13,
+    paddingHorizontal: 28,
+    borderRadius: 25,
+    width: '100%',
+    ...SHADOWS.small,
+  },
+  editProfileBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#F1F4F9',
+    ...SHADOWS.small,
+  },
+  partnerSpecsCard: {
+    backgroundColor: '#FFF9FB',
+    borderColor: '#FFD7E5',
+    borderWidth: 1.5,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+    paddingBottom: 10,
+  },
+  sectionHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#2D1B4D',
+  },
+  bioText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4C3A7A',
+    lineHeight: 24,
+    textAlign: 'right',
+    backgroundColor: '#FDFBFF',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F1F4F9',
+  },
+  partnerSpecsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4C3A7A',
+    lineHeight: 24,
+    textAlign: 'right',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#FFE4E6',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  infoLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#8B94B7',
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#2D1B4D',
   },
 });
