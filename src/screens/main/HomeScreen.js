@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -31,7 +31,8 @@ export default function HomeScreen({ navigation }) {
   const { showConfirm, showSuccess, showError, showWarning } = useAlert();
   const [currentUser, setCurrentUser] = useState(null);
   const [allMatches, setAllMatches] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(10);
+  const [matchTab, setMatchTab] = useState('new'); // 'new' | 'unlocked' | 'all'
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -82,7 +83,7 @@ export default function HomeScreen({ navigation }) {
           const fetchedMatches = matchesRes.matches || matchesRes.data || [];
           setAllMatches(fetchedMatches);
           setRequiresForm(false);
-          setVisibleCount(6);
+          setVisibleCount(10);
 
           if (meRes.user) {
             setCurrentUser(prev => prev ? ({
@@ -150,11 +151,16 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  const uncontactedMatches = useMemo(() => allMatches.filter(m => !m.is_unlocked), [allMatches]);
+  const unlockedMatches = useMemo(() => allMatches.filter(m => m.is_unlocked), [allMatches]);
+  const activeTabMatches = matchTab === 'new' ? uncontactedMatches : (matchTab === 'unlocked' ? unlockedMatches : allMatches);
+  const displayedMatches = activeTabMatches.slice(0, visibleCount);
+
   const handleLoadMore = () => {
-    if (visibleCount < allMatches.length && !loadingMore) {
+    if (visibleCount < activeTabMatches.length && !loadingMore) {
       setLoadingMore(true);
       setTimeout(() => {
-        setVisibleCount(prev => Math.min(prev + 6, allMatches.length));
+        setVisibleCount(prev => Math.min(prev + 10, activeTabMatches.length));
         setLoadingMore(false);
       }, 250);
     }
@@ -208,7 +214,6 @@ export default function HomeScreen({ navigation }) {
     });
   };
 
-  const displayedMatches = allMatches.slice(0, visibleCount);
   const userName = currentUser?.profile?.nickname || currentUser?.name || '';
 
   return (
@@ -469,6 +474,68 @@ export default function HomeScreen({ navigation }) {
                   <Text style={styles.resetFiltersText}>إعادة ضبط وتصفير الفلاتر</Text>
                 </TouchableOpacity>
               )}
+
+              {/* Discovery Tabs: New vs Unlocked vs All */}
+              <View style={styles.tabBarContainer}>
+                <TouchableOpacity
+                  style={[styles.tabBtn, matchTab === 'new' && styles.tabBtnActiveNew]}
+                  onPress={() => { setMatchTab('new'); setVisibleCount(10); }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.tabBtnText, matchTab === 'new' && styles.tabBtnTextActive]}>
+                    استمارات جديدة ✨
+                  </Text>
+                  <View style={[styles.tabBadge, matchTab === 'new' && styles.tabBadgeActive]}>
+                    <Text style={[styles.tabBadgeText, matchTab === 'new' && styles.tabBadgeTextActive]}>
+                      {uncontactedMatches.length}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.tabBtn, matchTab === 'unlocked' && styles.tabBtnActiveUnlocked]}
+                  onPress={() => { setMatchTab('unlocked'); setVisibleCount(10); }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.tabBtnText, matchTab === 'unlocked' && styles.tabBtnTextActive]}>
+                    تم فك قفلها 🔓
+                  </Text>
+                  <View style={[styles.tabBadge, matchTab === 'unlocked' && styles.tabBadgeActive]}>
+                    <Text style={[styles.tabBadgeText, matchTab === 'unlocked' && styles.tabBadgeTextActive]}>
+                      {unlockedMatches.length}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.tabBtn, matchTab === 'all' && styles.tabBtnActiveAll]}
+                  onPress={() => { setMatchTab('all'); setVisibleCount(10); }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.tabBtnText, matchTab === 'all' && styles.tabBtnTextActive]}>
+                    الكل
+                  </Text>
+                  <View style={[styles.tabBadge, matchTab === 'all' && styles.tabBadgeActive]}>
+                    <Text style={[styles.tabBadgeText, matchTab === 'all' && styles.tabBadgeTextActive]}>
+                      {allMatches.length}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* Progress Count Summary */}
+              {activeTabMatches.length > 0 && (
+                <View style={styles.countSummaryRow}>
+                  <Text style={styles.countSummaryText}>
+                    عرض {Math.min(visibleCount, activeTabMatches.length)} من إجمالي {activeTabMatches.length} استمارة
+                  </Text>
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countBadgeText}>
+                      {visibleCount < activeTabMatches.length ? '10 استمارات بالدفعة ⬇️' : 'تم استعراض الكل'}
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           }
           ListEmptyComponent={
@@ -483,12 +550,29 @@ export default function HomeScreen({ navigation }) {
             </View>
           }
           ListFooterComponent={
-            loadingMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color="#E91E63" />
-                <Text style={styles.footerLoaderText}>جاري تحميل المزيد...</Text>
-              </View>
-            ) : null
+            <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+              {loadingMore ? (
+                <View style={styles.footerLoader}>
+                  <ActivityIndicator size="small" color="#E91E63" />
+                  <Text style={styles.footerLoaderText}>جاري تحميل المزيد من الاستمارات...</Text>
+                </View>
+              ) : visibleCount < activeTabMatches.length ? (
+                <TouchableOpacity
+                  style={styles.loadMoreBtn}
+                  onPress={handleLoadMore}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="arrow-down-circle-outline" size={18} color="#E91E63" />
+                  <Text style={styles.loadMoreBtnText}>
+                    عرض 10 استمارات إضافية ({activeTabMatches.length - visibleCount} متبقية) ⬇️
+                  </Text>
+                </TouchableOpacity>
+              ) : activeTabMatches.length > 0 ? (
+                <Text style={styles.allLoadedText}>
+                  ✨ تم استعراض كافة الاستمارات المتاحة ({activeTabMatches.length} استمارة)
+                </Text>
+              ) : null}
+            </View>
           }
         />
       )}
@@ -743,4 +827,112 @@ const styles = StyleSheet.create({
   modalOptionActive: { backgroundColor: '#FFF0F5', borderRadius: 10, paddingHorizontal: 10 },
   modalOptionText: { fontSize: 14, fontWeight: '700', color: '#2D1B4D' },
   modalOptionTextActive: { color: '#E91E63', fontWeight: '900' },
+  tabBarContainer: {
+    flexDirection: 'row-reverse',
+    gap: 8,
+    marginTop: 14,
+    marginBottom: 10,
+  },
+  tabBtn: {
+    flex: 1,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#F1F4F9',
+    gap: 5,
+    ...SHADOWS.small,
+  },
+  tabBtnActiveNew: {
+    backgroundColor: '#E91E63',
+    borderColor: '#E91E63',
+  },
+  tabBtnActiveUnlocked: {
+    backgroundColor: '#059669',
+    borderColor: '#059669',
+  },
+  tabBtnActiveAll: {
+    backgroundColor: '#2D1B4D',
+    borderColor: '#2D1B4D',
+  },
+  tabBtnText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  tabBtnTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+  },
+  tabBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.28)',
+  },
+  tabBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  tabBadgeTextActive: {
+    color: '#FFFFFF',
+  },
+  countSummaryRow: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 4,
+    paddingHorizontal: 4,
+  },
+  countSummaryText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  countBadge: {
+    backgroundColor: '#FFF0F5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#E91E63',
+  },
+  loadMoreBtn: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF0F5',
+    borderWidth: 1.5,
+    borderColor: '#E91E63',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 22,
+    gap: 8,
+    marginVertical: 10,
+    ...SHADOWS.small,
+  },
+  loadMoreBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#E91E63',
+  },
+  allLoadedText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#94A3B8',
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
 });
