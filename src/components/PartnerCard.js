@@ -55,7 +55,7 @@ export default function PartnerCard({
     >
       {/* Floating Status Badge (Top Right) */}
       <View style={styles.statusBadge}>
-        <Text style={styles.statusBadgeText}>
+        <Text style={styles.statusBadgeText} numberOfLines={1}>
           {partner.is_unlocked ? '🔓 مفكوك القفل' : '🔒 مقفول'} • {formatProfileValue(profile.marital_status, 'غير محدد')}
         </Text>
       </View>
@@ -97,16 +97,16 @@ export default function PartnerCard({
       {/* Card Info Section */}
       <View style={styles.infoSection}>
         {/* Name and Age */}
-        <Text style={styles.nameText}>
+        <Text style={styles.nameText} numberOfLines={1}>
           {profile.nickname || partner.name}
           {age ? `، ${age} سنة` : ''}
         </Text>
 
         {/* Location & Job Meta */}
         <View style={styles.metaRow}>
-          <Text style={styles.metaText}>{formatLocation(profile.governorate, profile.area)}</Text>
+          <Text style={styles.metaText} numberOfLines={1}>{formatLocation(profile.governorate, profile.area)}</Text>
           <Text style={styles.metaDot}>•</Text>
-          <Text style={styles.metaText}>{formatProfileValue(profile.job, 'الوظيفة غير محددة')}</Text>
+          <Text style={styles.metaText} numberOfLines={1}>{formatProfileValue(profile.job, 'الوظيفة غير محددة')}</Text>
         </View>
 
         {/* Tags Row */}
@@ -137,7 +137,7 @@ export default function PartnerCard({
               onPress={handleWhatsApp}
             >
               <Ionicons name="logo-whatsapp" size={17} color="#FFFFFF" style={{ marginLeft: 6 }} />
-              <Text style={styles.btnWhatsAppText}>تواصل الآن</Text>
+              <Text style={styles.btnWhatsAppText} numberOfLines={1}>تواصل الآن</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -152,7 +152,7 @@ export default function PartnerCard({
                 style={styles.btnUnlock}
               >
                 <Ionicons name="lock-closed" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
-                <Text style={styles.btnUnlockText}>فك القفل والتواصل</Text>
+                <Text style={styles.btnUnlockText} numberOfLines={1}>فك القفل والتواصل</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -163,7 +163,7 @@ export default function PartnerCard({
             onPress={onPress}
           >
             <Ionicons name="information-circle-outline" size={17} color="#2D1B4D" style={{ marginLeft: 6 }} />
-            <Text style={styles.btnDetailsText}>التفاصيل</Text>
+            <Text style={styles.btnDetailsText} numberOfLines={1}>التفاصيل</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -186,6 +186,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 14,
     right: 14,
+    maxWidth: '65%',
     backgroundColor: 'rgba(255, 255, 255, 0.94)',
     paddingHorizontal: 12,
     paddingVertical: 5,

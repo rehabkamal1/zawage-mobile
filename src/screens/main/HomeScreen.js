@@ -23,10 +23,6 @@ import PartnerCard from '../../components/PartnerCard';
 import { APP_CONFIG } from '../../constants/config';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
-const GOVERNORATES = APP_CONFIG.GOVERNORATES;
-const MARITAL_STATUSES = ['الكل', 'آنسة', 'مطلق', 'مطلقة', 'أرمل', 'أرملة'];
-const AGE_RANGES = ['الكل', '18-25', '26-35', '36+'];
-
 export default function HomeScreen({ navigation }) {
   const { showConfirm, showSuccess, showError, showWarning } = useAlert();
   const [currentUser, setCurrentUser] = useState(null);
@@ -39,12 +35,6 @@ export default function HomeScreen({ navigation }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [requiresForm, setRequiresForm] = useState(false);
 
-  // Filter States
-  const [governorate, setGovernorate] = useState('الكل');
-  const [maritalStatus, setMaritalStatus] = useState('الكل');
-  const [ageRange, setAgeRange] = useState('الكل');
-  const [activePicker, setActivePicker] = useState(null); // 'gov' | 'status' | 'age' | null
-
   const isMale = currentUser?.gender === 'male';
   const isProfileFilled = Boolean(
     currentUser?.profile &&
@@ -56,13 +46,8 @@ export default function HomeScreen({ navigation }) {
   );
 
   // Fetch Current User & Matches
-  const fetchData = useCallback(async (currentGov = governorate, currentStatus = maritalStatus, currentAge = ageRange) => {
+  const fetchData = useCallback(async () => {
     try {
-      let query = '';
-      if (currentGov !== 'الكل') query += `governorate=${encodeURIComponent(currentGov)}&`;
-      if (currentStatus !== 'الكل') query += `marital_status=${encodeURIComponent(currentStatus)}&`;
-      if (currentAge !== 'الكل') query += `age_range=${encodeURIComponent(currentAge)}&`;
-
       const [meRes, favsRes] = await Promise.all([
         api.getMe().catch(() => ({ user: null })),
         api.getFavorites().catch(() => ({ favorites: [] })),
@@ -79,7 +64,7 @@ export default function HomeScreen({ navigation }) {
       // Only attempt to fetch matches if user is male
       if (meRes.user?.gender === 'male') {
         try {
-          const matchesRes = await api.getMatches(query);
+          const matchesRes = await api.getMatches();
           const fetchedMatches = matchesRes.matches || matchesRes.data || [];
           setAllMatches(fetchedMatches);
           setRequiresForm(false);
@@ -111,7 +96,7 @@ export default function HomeScreen({ navigation }) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [governorate, maritalStatus, ageRange]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -121,21 +106,7 @@ export default function HomeScreen({ navigation }) {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchData(governorate, maritalStatus, ageRange);
-  };
-
-  const handleApplyFilter = (type, val) => {
-    let nextGov = governorate;
-    let nextStatus = maritalStatus;
-    let nextAge = ageRange;
-
-    if (type === 'gov') { setGovernorate(val); nextGov = val; }
-    if (type === 'status') { setMaritalStatus(val); nextStatus = val; }
-    if (type === 'age') { setAgeRange(val); nextAge = val; }
-
-    setActivePicker(null);
-    setLoading(true);
-    fetchData(nextGov, nextStatus, nextAge);
+    fetchData();
   };
 
   const handleToggleFavorite = async (partnerId) => {
@@ -409,72 +380,6 @@ export default function HomeScreen({ navigation }) {
                 أهلاً {userName}، اكتشف شريك حياتك 🌟
               </Text>
 
-              {/* Unified Filter Bar (Matches Web) */}
-              <View style={styles.unifiedFilterBar}>
-                {/* Governorate Dropdown */}
-                <TouchableOpacity
-                  style={styles.filterPill}
-                  activeOpacity={0.8}
-                  onPress={() => setActivePicker('gov')}
-                >
-                  <Ionicons name="location-outline" size={17} color="#E91E63" />
-                  <View style={styles.filterTextCol}>
-                    <Text style={styles.filterMiniLabel}>المحافظة</Text>
-                    <Text style={styles.filterValueText} numberOfLines={1}>{governorate}</Text>
-                  </View>
-                  <Ionicons name="chevron-down" size={14} color="#8B94B7" />
-                </TouchableOpacity>
-
-                <View style={styles.filterDivider} />
-
-                {/* Marital Status Dropdown */}
-                <TouchableOpacity
-                  style={styles.filterPill}
-                  activeOpacity={0.8}
-                  onPress={() => setActivePicker('status')}
-                >
-                  <Ionicons name="people-outline" size={17} color="#E91E63" />
-                  <View style={styles.filterTextCol}>
-                    <Text style={styles.filterMiniLabel}>الحالة</Text>
-                    <Text style={styles.filterValueText} numberOfLines={1}>{maritalStatus}</Text>
-                  </View>
-                  <Ionicons name="chevron-down" size={14} color="#8B94B7" />
-                </TouchableOpacity>
-
-                <View style={styles.filterDivider} />
-
-                {/* Age Dropdown */}
-                <TouchableOpacity
-                  style={styles.filterPill}
-                  activeOpacity={0.8}
-                  onPress={() => setActivePicker('age')}
-                >
-                  <Ionicons name="calendar-outline" size={17} color="#E91E63" />
-                  <View style={styles.filterTextCol}>
-                    <Text style={styles.filterMiniLabel}>السن</Text>
-                    <Text style={styles.filterValueText} numberOfLines={1}>{ageRange}</Text>
-                  </View>
-                  <Ionicons name="chevron-down" size={14} color="#8B94B7" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Active Filters Reset Pill */}
-              {(governorate !== 'الكل' || maritalStatus !== 'الكل' || ageRange !== 'الكل') && (
-                <TouchableOpacity
-                  style={styles.resetFiltersBtn}
-                  onPress={() => {
-                    setGovernorate('الكل');
-                    setMaritalStatus('الكل');
-                    setAgeRange('الكل');
-                    setLoading(true);
-                    fetchData('الكل', 'الكل', 'الكل');
-                  }}
-                >
-                  <Ionicons name="close-circle" size={15} color="#E11D48" />
-                  <Text style={styles.resetFiltersText}>إعادة ضبط وتصفير الفلاتر</Text>
-                </TouchableOpacity>
-              )}
-
               {/* Discovery Tabs: New vs Unlocked vs All */}
               <View style={styles.tabBarContainer}>
                 <TouchableOpacity
@@ -576,52 +481,6 @@ export default function HomeScreen({ navigation }) {
           }
         />
       )}
-
-      {/* Filter Bottom Sheet / Modal */}
-      <Modal
-        visible={activePicker !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setActivePicker(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setActivePicker(null)}>
-                <Ionicons name="close-circle-outline" size={26} color="#8B94B7" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>
-                {activePicker === 'gov' ? 'اختر المحافظة' : activePicker === 'status' ? 'اختر الحالة الاجتماعية' : 'اختر الفئة العمرية'}
-              </Text>
-            </View>
-
-            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-              {(activePicker === 'gov' ? GOVERNORATES : activePicker === 'status' ? MARITAL_STATUSES : AGE_RANGES).map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  style={[
-                    styles.modalOption,
-                    (activePicker === 'gov' ? governorate : activePicker === 'status' ? maritalStatus : ageRange) === item && styles.modalOptionActive,
-                  ]}
-                  onPress={() => handleApplyFilter(activePicker, item)}
-                >
-                  <Text
-                    style={[
-                      styles.modalOptionText,
-                      (activePicker === 'gov' ? governorate : activePicker === 'status' ? maritalStatus : ageRange) === item && styles.modalOptionTextActive,
-                    ]}
-                  >
-                    {item}
-                  </Text>
-                  {(activePicker === 'gov' ? governorate : activePicker === 'status' ? maritalStatus : ageRange) === item && (
-                    <Ionicons name="checkmark-circle" size={18} color="#E91E63" />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -652,49 +511,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContent: { padding: 16, paddingBottom: 40 },
-  headerContainer: { marginBottom: 14 },
+  headerContainer: { marginBottom: 12 },
   greetingTitle: {
     fontSize: 18,
     fontWeight: '900',
     color: '#2D1B4D',
     textAlign: 'right',
-    marginBottom: 12,
+    marginBottom: 6,
   },
-  unifiedFilterBar: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: '#F1F4F9',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    ...SHADOWS.small,
-  },
-  filterPill: {
-    flex: 1,
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-  },
-  filterTextCol: { flex: 1, alignItems: 'flex-end', marginHorizontal: 4 },
-  filterMiniLabel: { fontSize: 9.5, fontWeight: '700', color: '#8B94B7' },
-  filterValueText: { fontSize: 11.5, fontWeight: '800', color: '#2D1B4D' },
-  filterDivider: { width: 1, height: 26, backgroundColor: '#E2E8F0' },
-  resetFiltersBtn: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    alignSelf: 'flex-end',
-    backgroundColor: '#FFF1F2',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginTop: 8,
-    gap: 4,
-  },
-  resetFiltersText: { fontSize: 11.5, fontWeight: '800', color: '#E11D48' },
 
   // Center Notice Cards (Bride & Incomplete Groom)
   centerCardContainer: { padding: 20, flexGrow: 1, justifyContent: 'center' },
@@ -818,15 +642,6 @@ const styles = StyleSheet.create({
   footerLoader: { flexDirection: 'row-reverse', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 8 },
   footerLoaderText: { fontSize: 12.5, color: '#8B94B7', fontWeight: '700' },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '65%' },
-  modalHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  modalTitle: { fontSize: 16, fontWeight: '900', color: '#2D1B4D' },
-  modalScroll: { maxHeight: 350 },
-  modalOption: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F8F9FE' },
-  modalOptionActive: { backgroundColor: '#FFF0F5', borderRadius: 10, paddingHorizontal: 10 },
-  modalOptionText: { fontSize: 14, fontWeight: '700', color: '#2D1B4D' },
-  modalOptionTextActive: { color: '#E91E63', fontWeight: '900' },
   tabBarContainer: {
     flexDirection: 'row-reverse',
     gap: 8,
