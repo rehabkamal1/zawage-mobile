@@ -208,14 +208,14 @@ export default function HomeScreen({ navigation }) {
             style={[styles.navBookmarkBtn, { marginLeft: 8 }]}
             onPress={() => navigation.navigate('Notifications')}
           >
-            <Ionicons name="notifications" size={22} color="#2D1B4D" />
+            <Ionicons name="notifications-outline" size={22} color="#2D1B4D" />
           </TouchableOpacity>
           {isMale && (
             <TouchableOpacity
               style={styles.navBookmarkBtn}
               onPress={() => navigation.navigate('FavoritesTab')}
             >
-              <Ionicons name="bookmark" size={22} color="#2D1B4D" />
+              <Ionicons name="bookmark-outline" size={22} color="#2D1B4D" />
             </TouchableOpacity>
           )}
         </View>
@@ -250,7 +250,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('EditProfileTab')}
               activeOpacity={0.88}
             >
-              <Ionicons name="create" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Ionicons name="create-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
               <Text style={styles.fillFormBtnText}>ملء استمارة العروسة الآن 📝</Text>
             </TouchableOpacity>
 
@@ -259,7 +259,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('Settings')}
               activeOpacity={0.8}
             >
-              <Ionicons name="settings" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
+              <Ionicons name="settings-outline" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
               <Text style={styles.brideSecondaryBtnText}>إعدادات الحساب وكلمة المرور ⚙️</Text>
             </TouchableOpacity>
           </View>
@@ -274,7 +274,7 @@ export default function HomeScreen({ navigation }) {
         >
           <View style={styles.brideCard}>
             <View style={styles.brideIconCircle}>
-              <Ionicons name="heart" size={46} color="#E91E63" />
+              <Ionicons name="heart-outline" size={46} color="#E91E63" />
             </View>
             <Text style={styles.brideTitle}>أهلاً بكِ في منصة نصفي الآخر 🌸</Text>
             <Text style={styles.brideSubtitle}>
@@ -297,7 +297,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('EditProfileTab')}
               activeOpacity={0.88}
             >
-              <Ionicons name="document-text" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Ionicons name="document-text-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
               <Text style={styles.brideActionBtnText}>استعراض وتعديل استمارتي 📝</Text>
             </TouchableOpacity>
 
@@ -306,7 +306,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('Settings')}
               activeOpacity={0.8}
             >
-              <Ionicons name="settings" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
+              <Ionicons name="settings-outline" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
               <Text style={styles.brideSecondaryBtnText}>إعدادات الحساب وكلمة المرور ⚙️</Text>
             </TouchableOpacity>
           </View>
@@ -321,7 +321,7 @@ export default function HomeScreen({ navigation }) {
         >
           <View style={styles.lockNoticeCard}>
             <View style={styles.lockIconCircle}>
-              <Ionicons name="document-text" size={44} color="#E91E63" />
+              <Ionicons name="document-text-outline" size={44} color="#E91E63" />
             </View>
 
             <Text style={styles.lockTitle}>يرجى ملء الاستمارة أولاً لتتمكن من تصفح العرايس 📋</Text>
@@ -341,7 +341,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('EditProfileTab')}
               activeOpacity={0.88}
             >
-              <Ionicons name="create" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Ionicons name="create-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
               <Text style={styles.fillFormBtnText}>ملء الاستمارة الآن 📝</Text>
             </TouchableOpacity>
           </View>

@@ -27,8 +27,8 @@ const SLIDES = [
     title: 'طريقك الشرعي نحو شريك الحياة 🌸',
     description:
       'منصة "نصفي الآخر" قائمة على كتاب الله وسنة رسوله ﷺ؛ نساعدك في العثور على الشريك الصالح بكل جدية وعفة، مع حفظ تام للكرامة والخصوصية الشرعية.',
-    mainIcon: 'heart',
-    subIcon: 'shield-checkmark',
+    mainIcon: 'heart-outline',
+    subIcon: 'shield-checkmark-outline',
     accentColor: '#E91E63',
     subColor: '#9333EA',
     cardBg: '#FFF5F8',
@@ -42,8 +42,8 @@ const SLIDES = [
     title: 'استمارات مفصلة وتوافق ذكي 🎯',
     description:
       'استمارة زواج متكاملة تشمل الالتزام بالصلاة، الحجاب، التدخين، المؤهل، ونبذة عن النفس ومواصفات الشريك للوصول لأعلى درجات التوافق والسكينة.',
-    mainIcon: 'document-text',
-    subIcon: 'sparkles',
+    mainIcon: 'document-text-outline',
+    subIcon: 'sparkles-outline',
     accentColor: '#2563EB',
     subColor: '#059669',
     cardBg: '#F0F7FF',
@@ -58,7 +58,7 @@ const SLIDES = [
     description:
       'حفاظاً على بنات المسلمين، يتم فك قفل بيانات التواصل والتخاطب المباشر عبر واتساب مع ولي أمر العروسة لضمان الجدية التامة والوضوح والأمان.',
     mainIcon: 'logo-whatsapp',
-    subIcon: 'call',
+    subIcon: 'call-outline',
     accentColor: '#10B981',
     subColor: '#0284C7',
     cardBg: '#F0FDF4',
@@ -72,8 +72,8 @@ const SLIDES = [
     title: 'تسجيل مجاني وباقات مرنة 👑',
     description:
       'تسجيل مجاني بالكامل لجميع العرائس، مع 3 استمارات مجانية كهدية ترحيبية لكل عريس جاد، بالإضافة لباقات اشتراك ميسرة للتجديد وفك أقفال إضافية.',
-    mainIcon: 'gift',
-    subIcon: 'card',
+    mainIcon: 'gift-outline',
+    subIcon: 'card-outline',
     accentColor: '#F59E0B',
     subColor: '#E91E63',
     cardBg: '#FFFDF0',
@@ -155,7 +155,7 @@ export default function OnboardingScreen({ navigation, onFinish }) {
           <View style={styles.chipsRow}>
             {item.chips.map((chip, idx) => (
               <View key={idx} style={styles.chip}>
-                <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                <Ionicons name="checkmark-circle-outline" size={14} color="#10B981" />
                 <Text style={styles.chipText}>{chip}</Text>
               </View>
             ))}

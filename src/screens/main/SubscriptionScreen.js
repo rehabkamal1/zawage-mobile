@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { api, getStoredAuthData, API_BASE_URL } from '../../api/client';
 import { useAlert } from '../../context/AlertContext';
@@ -124,46 +123,31 @@ export default function SubscriptionScreen({ navigation }) {
 
     setSubmitting(true);
     try {
-      const { token } = await getStoredAuthData();
-      const endpoint = `${API_BASE_URL}/subscriptions/manual-transfer`;
-
-      const uploadResult = await FileSystem.uploadAsync(endpoint, receiptImage, {
-        fieldName: 'receipt_image',
-        httpMethod: 'POST',
-        uploadType: 1, // MULTIPART upload type enum value in expo-file-system
-        headers: {
-          Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        parameters: {
-          type: selectedPlan,
-          ...(senderWallet.trim() ? { sender_wallet_number: senderWallet.trim() } : {}),
-        },
+      const formData = new FormData();
+      formData.append('type', selectedPlan);
+      if (senderWallet.trim()) {
+        formData.append('sender_wallet_number', senderWallet.trim());
+      }
+      const filename = receiptImage.split('/').pop() || 'receipt.jpg';
+      const ext = filename.split('.').pop()?.toLowerCase() || 'jpg';
+      const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+      formData.append('receipt_image', {
+        uri: receiptImage,
+        name: filename,
+        type: mimeType,
       });
 
-      let res = {};
-      try {
-        res = uploadResult.body ? JSON.parse(uploadResult.body) : {};
-      } catch (_) {}
+      const res = await api.submitManualTransfer(formData, true);
 
-      if (uploadResult.status >= 200 && uploadResult.status < 300) {
-        showSuccess(
-          'تم إرسال إيصال التحويل بنجاح! 🎉',
-          res.message || 'طلبك الآن قيد المراجعة والتدقيق من قبل الإدارة. سيتم تفعيل باقتك فور مراجعة الإيصال.'
-        );
+      showSuccess(
+        'تم إرسال إيصال التحويل بنجاح! 🎉',
+        res.message || 'طلبك الآن قيد المراجعة والتدقيق من قبل الإدارة. سيتم تفعيل باقتك فور مراجعة الإيصال.'
+      );
 
-        setReceiptImage(null);
-        setSenderWallet('');
-        setShowRenewForm(false);
-        fetchUserData();
-      } else {
-        const errorMsg =
-          res.message ||
-          res.error ||
-          (res.errors ? Object.values(res.errors)[0]?.[0] : null) ||
-          'حدث خطأ أثناء إرسال الإيصال';
-        showError('خطأ في إرسال الإيصال', errorMsg);
-      }
+      setReceiptImage(null);
+      setSenderWallet('');
+      setShowRenewForm(false);
+      fetchUserData();
     } catch (err) {
       showError('خطأ في إرسال الإيصال', err.message || 'يرجى التأكد من اتصال الإنترنت والمحاولة مجدداً.');
     } finally {
@@ -216,7 +200,7 @@ export default function SubscriptionScreen({ navigation }) {
         {currentActiveSub && isFinished && (
           <View style={styles.expiredBanner}>
             <View style={styles.expiredIconBox}>
-              <Ionicons name="alert-circle" size={32} color="#9A3412" />
+              <Ionicons name="alert-circle-outline" size={32} color="#9A3412" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.expiredTitle}>انتهى رصيد أو صلاحية باقتك السابقة ⚠️</Text>
@@ -232,7 +216,7 @@ export default function SubscriptionScreen({ navigation }) {
           <View style={styles.activeCard}>
             <View style={styles.activeHeaderRow}>
               <View style={styles.crownCircle}>
-                <Ionicons name="shield-checkmark" size={28} color="#0D9488" />
+                <Ionicons name="shield-checkmark-outline" size={28} color="#0D9488" />
               </View>
               <View style={styles.activeTextCol}>
                 <Text style={styles.activePlanName}>
@@ -252,7 +236,7 @@ export default function SubscriptionScreen({ navigation }) {
                 style={styles.activeFormBtn}
                 onPress={() => navigation.navigate('EditProfileTab')}
               >
-                <Ionicons name="document-text" size={17} color="#0F766E" style={{ marginLeft: 6 }} />
+                <Ionicons name="document-text-outline" size={17} color="#0F766E" style={{ marginLeft: 6 }} />
                 <Text style={styles.activeFormBtnText}>استمارتي</Text>
               </TouchableOpacity>
 
@@ -260,7 +244,7 @@ export default function SubscriptionScreen({ navigation }) {
                 style={styles.activeRenewBtn}
                 onPress={() => setShowRenewForm(!showRenewForm)}
               >
-                <Ionicons name="refresh" size={17} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                <Ionicons name="refresh-outline" size={17} color="#FFFFFF" style={{ marginLeft: 6 }} />
                 <Text style={styles.activeRenewBtnText}>
                   {showRenewForm ? 'إخفاء نموذج التجديد' : 'تجديد / ترقية الباقة الآن 🔄'}
                 </Text>
@@ -273,7 +257,7 @@ export default function SubscriptionScreen({ navigation }) {
         {isPending && (
           <View style={styles.pendingCard}>
             <View style={styles.pendingIconBox}>
-              <Ionicons name="time" size={32} color="#D97706" />
+              <Ionicons name="time-outline" size={32} color="#D97706" />
             </View>
             <Text style={styles.pendingCardTitle}>طلب التحويل قيد المراجعة حالياً ⏳</Text>
             <Text style={styles.pendingCardText}>
@@ -304,7 +288,7 @@ export default function SubscriptionScreen({ navigation }) {
             </View>
 
             <TouchableOpacity style={styles.refreshStatusBtn} onPress={fetchUserData}>
-              <Ionicons name="refresh" size={18} color="#92400E" style={{ marginLeft: 6 }} />
+              <Ionicons name="refresh-outline" size={18} color="#92400E" style={{ marginLeft: 6 }} />
               <Text style={styles.refreshStatusBtnText}>تحديث حالة الطلب الآن 🔄</Text>
             </TouchableOpacity>
           </View>
@@ -314,7 +298,7 @@ export default function SubscriptionScreen({ navigation }) {
         {isRejected && (
           <View style={styles.rejectedCard}>
             <View style={styles.rejectedIconBox}>
-              <Ionicons name="close-circle" size={30} color="#DC2626" />
+              <Ionicons name="close-circle-outline" size={30} color="#DC2626" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.rejectedTitle}>عذراً، تم رفض إيصال التحويل السابق ❌</Text>
@@ -352,7 +336,7 @@ export default function SubscriptionScreen({ navigation }) {
             {/* Vodafone Cash Instructions Card (Matches Web) */}
             <View style={styles.vodafoneCard}>
               <View style={styles.vodafoneHeader}>
-                <Ionicons name="wallet" size={32} color="#FACC15" />
+                <Ionicons name="wallet-outline" size={32} color="#FACC15" />
                 <Text style={styles.vodafoneTitle}>
                   لإكمال التفعيل، حوّل على رقم فودافون كاش التالي:
                 </Text>
@@ -373,7 +357,7 @@ export default function SubscriptionScreen({ navigation }) {
                   }}
                   activeOpacity={0.88}
                 >
-                  <Ionicons name="copy" size={17} color="#1E1B4B" style={{ marginLeft: 6 }} />
+                  <Ionicons name="copy-outline" size={17} color="#1E1B4B" style={{ marginLeft: 6 }} />
                   <Text style={styles.copyBtnText}>نسخ الرقم</Text>
                 </TouchableOpacity>
               </View>
@@ -413,7 +397,7 @@ export default function SubscriptionScreen({ navigation }) {
                   <View style={styles.planFeaturesBox}>
                     {plan.features.map((feat, idx) => (
                       <View key={idx} style={styles.featureLine}>
-                        <Ionicons name="checkmark-circle" size={16} color="#10B981" style={{ marginLeft: 6 }} />
+                        <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" style={{ marginLeft: 6 }} />
                         <Text style={styles.featureLineText}>{feat}</Text>
                       </View>
                     ))}
@@ -433,7 +417,7 @@ export default function SubscriptionScreen({ navigation }) {
                     style={styles.changeImageBtn}
                     onPress={() => setReceiptImage(null)}
                   >
-                    <Ionicons name="trash" size={18} color="#EF4444" style={{ marginLeft: 6 }} />
+                    <Ionicons name="trash-outline" size={18} color="#EF4444" style={{ marginLeft: 6 }} />
                     <Text style={styles.changeImageText}>حذف الصورة وتغييرها</Text>
                   </TouchableOpacity>
                 </View>
@@ -443,7 +427,7 @@ export default function SubscriptionScreen({ navigation }) {
                   activeOpacity={0.8}
                   onPress={handlePickImage}
                 >
-                  <Ionicons name="cloud-upload" size={44} color="#E91E63" />
+                  <Ionicons name="cloud-upload-outline" size={44} color="#E91E63" />
                   <Text style={styles.dropZoneTitle}>اضغط لاختيار صورة إيصال التحويل من جهازك</Text>
                   <Text style={styles.dropZoneSubtitle}>يدعم صيغ JPG, PNG, WEBP (الحد الأقصى 5 ميجابايت)</Text>
                 </TouchableOpacity>
@@ -473,7 +457,7 @@ export default function SubscriptionScreen({ navigation }) {
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <>
-                    <Ionicons name="arrow-up-circle" size={22} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                    <Ionicons name="arrow-up-circle-outline" size={22} color="#FFFFFF" style={{ marginLeft: 8 }} />
                     <Text style={styles.submitPayBtnText}>إرسال إيصال التحويل لتفعيل الباقة الآن 🚀</Text>
                   </>
                 )}

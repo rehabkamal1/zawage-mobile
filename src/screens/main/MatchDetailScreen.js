@@ -153,7 +153,7 @@ export default function MatchDetailScreen({ route, navigation }) {
           onPress={() => setReportModalVisible(true)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="flag" size={20} color="#E11D48" />
+          <Ionicons name="flag-outline" size={20} color="#E11D48" />
         </TouchableOpacity>
       </View>
 
@@ -161,7 +161,7 @@ export default function MatchDetailScreen({ route, navigation }) {
         {/* Profile Card Center Avatar & Header (Matches Web Modal) */}
         <View style={styles.profileHeaderCard}>
           <View style={styles.avatarCircle}>
-            <Ionicons name="heart" size={44} color="#E91E63" />
+            <Ionicons name="heart-outline" size={44} color="#E91E63" />
           </View>
           <Text style={styles.partnerName}>
             {profile.nickname || partner.name}
@@ -216,7 +216,7 @@ export default function MatchDetailScreen({ route, navigation }) {
             <View>
               <View style={styles.unlockedBox}>
                 <View style={styles.unlockedHeaderRow}>
-                  <Ionicons name="lock-open" size={20} color="#25D366" />
+                  <Ionicons name="lock-open-outline" size={20} color="#25D366" />
                   <Text style={styles.unlockedHeaderText}>تم فك القفل — رقم ولي الأمر</Text>
                 </View>
                 <Text style={styles.unlockedPhone}>{partner.phone || profile.guardian_phone || 'متاح'}</Text>
@@ -234,7 +234,7 @@ export default function MatchDetailScreen({ route, navigation }) {
           ) : (
             <View>
               <View style={styles.lockedBox}>
-                <Ionicons name="lock-closed" size={24} color="#E91E63" style={{ marginBottom: 6 }} />
+                <Ionicons name="lock-closed-outline" size={24} color="#E91E63" style={{ marginBottom: 6 }} />
                 <Text style={styles.lockedBoxText}>
                   رقم ولي الأمر مخفي — اضغط فك القفل للتواصل عبر واتساب
                 </Text>
@@ -252,7 +252,7 @@ export default function MatchDetailScreen({ route, navigation }) {
                   end={{ x: 1, y: 0 }}
                   style={styles.unlockFullBtn}
                 >
-                  <Ionicons name="lock-open" size={20} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                  <Ionicons name="lock-open-outline" size={20} color="#FFFFFF" style={{ marginLeft: 8 }} />
                   <Text style={styles.unlockFullBtnText}>
                     {unlocking ? 'جاري فك القفل...' : 'فك القفل والتواصل عبر واتساب'}
                   </Text>
@@ -266,7 +266,7 @@ export default function MatchDetailScreen({ route, navigation }) {
             onPress={() => setReportModalVisible(true)}
             activeOpacity={0.7}
           >
-            <Ionicons name="shield-alert" size={17} color="#E11D48" style={{ marginLeft: 6 }} />
+            <Ionicons name="shield-alert-outline" size={17} color="#E11D48" style={{ marginLeft: 6 }} />
             <Text style={styles.bottomReportText}>إبلاغ إدارة المنصة عن مخالفة في هذه الاستمارة</Text>
           </TouchableOpacity>
         </View>
@@ -283,7 +283,7 @@ export default function MatchDetailScreen({ route, navigation }) {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setReportModalVisible(false)}>
-                <Ionicons name="close-circle" size={26} color="#8B94B7" />
+                <Ionicons name="close-circle-outline" size={26} color="#8B94B7" />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>إبلاغ عن استمارة</Text>
             </View>

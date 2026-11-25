@@ -174,7 +174,7 @@ export default function AdminPaymentsScreen({ navigation }) {
             style={styles.viewReceiptBtn}
             onPress={() => setPreviewImage(fullImageUrl)}
           >
-            <Ionicons name="image" size={18} color="#0284C7" />
+            <Ionicons name="image-outline" size={18} color="#0284C7" style={{ marginLeft: 6 }} />
             <Text style={styles.viewReceiptText}>معاينة صورة الإيصال المرفق</Text>
           </TouchableOpacity>
         ) : (
@@ -195,7 +195,7 @@ export default function AdminPaymentsScreen({ navigation }) {
               style={[styles.btnAction, styles.btnApprove]}
               onPress={() => handleApprove(item)}
             >
-              <Ionicons name="checkmark-circle" size={17} color="#FFFFFF" />
+              <Ionicons name="checkmark-circle-outline" size={17} color="#FFFFFF" style={{ marginLeft: 6 }} />
               <Text style={styles.btnActionText}>اعتماد وتفعيل</Text>
             </TouchableOpacity>
 
@@ -203,7 +203,7 @@ export default function AdminPaymentsScreen({ navigation }) {
               style={[styles.btnAction, styles.btnReject]}
               onPress={() => setRejectingPayment(item)}
             >
-              <Ionicons name="close-circle" size={17} color="#FFFFFF" />
+              <Ionicons name="close-circle-outline" size={17} color="#FFFFFF" style={{ marginLeft: 6 }} />
               <Text style={styles.btnActionText}>رفض الإيصال</Text>
             </TouchableOpacity>
           </View>
@@ -263,7 +263,7 @@ export default function AdminPaymentsScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Ionicons name="receipt" size={48} color="#CBD5E1" />
+              <Ionicons name="receipt-outline" size={48} color="#CBD5E1" />
               <Text style={styles.emptyText}>لا توجد أي إيصالات في هذه الحالة.</Text>
             </View>
           }
@@ -274,7 +274,7 @@ export default function AdminPaymentsScreen({ navigation }) {
       <Modal visible={Boolean(previewImage)} transparent animationType="fade">
         <View style={styles.imageModalOverlay}>
           <TouchableOpacity style={styles.closeImageBtn} onPress={() => setPreviewImage(null)}>
-            <Ionicons name="close" size={28} color="#FFFFFF" />
+            <Ionicons name="close-outline" size={28} color="#FFFFFF" />
           </TouchableOpacity>
           {previewImage && (
             <Image source={{ uri: previewImage }} style={styles.fullImage} resizeMode="contain" />

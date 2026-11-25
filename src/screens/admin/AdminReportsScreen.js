@@ -140,7 +140,7 @@ export default function AdminReportsScreen({ navigation }) {
               style={[styles.btnAction, styles.btnResolve]}
               onPress={() => handleUpdateStatus(item.id, 'resolved')}
             >
-              <Ionicons name="checkmark-done" size={16} color="#FFFFFF" />
+              <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" style={{ marginLeft: 4 }} />
               <Text style={styles.btnActionText}>معالجة</Text>
             </TouchableOpacity>
 
@@ -148,7 +148,7 @@ export default function AdminReportsScreen({ navigation }) {
               style={[styles.btnAction, styles.btnBan]}
               onPress={() => handleBanReported(item)}
             >
-              <Ionicons name="ban" size={16} color="#FFFFFF" />
+              <Ionicons name="ban-outline" size={16} color="#FFFFFF" style={{ marginLeft: 4 }} />
               <Text style={styles.btnActionText}>حظر المبلغ ضده</Text>
             </TouchableOpacity>
 
@@ -156,7 +156,7 @@ export default function AdminReportsScreen({ navigation }) {
               style={[styles.btnAction, styles.btnDismiss]}
               onPress={() => handleUpdateStatus(item.id, 'dismissed')}
             >
-              <Ionicons name="close" size={16} color="#64748B" />
+              <Ionicons name="close-circle-outline" size={16} color="#64748B" style={{ marginLeft: 4 }} />
               <Text style={[styles.btnActionText, { color: '#64748B' }]}>تجاهل</Text>
             </TouchableOpacity>
           </View>
@@ -216,7 +216,7 @@ export default function AdminReportsScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Ionicons name="shield-checkmark" size={48} color="#CBD5E1" />
+              <Ionicons name="shield-checkmark-outline" size={48} color="#CBD5E1" />
               <Text style={styles.emptyText}>لا توجد أي بلاغات في هذا القسم.</Text>
             </View>
           }

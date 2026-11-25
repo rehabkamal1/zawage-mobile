@@ -85,7 +85,7 @@ export default function ProfileScreen({ navigation }) {
           onPress={() => navigation.navigate('EditProfile')}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="create" size={22} color="#E91E63" />
+          <Ionicons name="create-outline" size={22} color="#E91E63" />
         </TouchableOpacity>
       </View>
 
@@ -93,7 +93,7 @@ export default function ProfileScreen({ navigation }) {
         {/* Profile Summary Card (Matches Web Profile Sidebar Card) */}
         <View style={styles.summaryCard}>
           <View style={[styles.avatarCircle, isFemale ? styles.femaleAvatar : styles.maleAvatar]}>
-            <Ionicons name={isFemale ? 'woman' : 'man'} size={48} color="#FFFFFF" />
+            <Ionicons name={isFemale ? 'woman-outline' : 'man-outline'} size={48} color="#FFFFFF" />
           </View>
 
           <Text style={styles.nameText}>{profile.nickname || user?.name || 'مستخدم نصفي الآخر'}</Text>
@@ -104,19 +104,19 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.tagsRow}>
             {profile.job ? (
               <View style={styles.metaTag}>
-                <Ionicons name="briefcase" size={13} color="#E91E63" style={{ marginLeft: 4 }} />
+                <Ionicons name="briefcase-outline" size={13} color="#E91E63" style={{ marginLeft: 4 }} />
                 <Text style={styles.metaTagText}>{formatProfileValue(profile.job)}</Text>
               </View>
             ) : null}
             {profile.governorate ? (
               <View style={styles.metaTag}>
-                <Ionicons name="location" size={13} color="#0284C7" style={{ marginLeft: 4 }} />
+                <Ionicons name="location-outline" size={13} color="#0284C7" style={{ marginLeft: 4 }} />
                 <Text style={styles.metaTagText}>{formatProfileValue(profile.governorate)}</Text>
               </View>
             ) : null}
             {profile.marital_status ? (
               <View style={styles.metaTag}>
-                <Ionicons name="heart" size={13} color="#8B5CF6" style={{ marginLeft: 4 }} />
+                <Ionicons name="heart-outline" size={13} color="#8B5CF6" style={{ marginLeft: 4 }} />
                 <Text style={styles.metaTagText}>{formatProfileValue(profile.marital_status)}</Text>
               </View>
             ) : null}
@@ -127,7 +127,7 @@ export default function ProfileScreen({ navigation }) {
             onPress={() => navigation.navigate('EditProfile')}
             activeOpacity={0.88}
           >
-            <Ionicons name="create" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+            <Ionicons name="create-outline" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
             <Text style={styles.editProfileBtnText}>تعديل الاستمارة ✏️</Text>
           </TouchableOpacity>
         </View>
@@ -135,7 +135,7 @@ export default function ProfileScreen({ navigation }) {
         {/* Section 1: Bio (نبذة عني) */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
-            <Ionicons name="star" size={20} color="#E91E63" style={{ marginLeft: 8 }} />
+            <Ionicons name="star-outline" size={20} color="#E91E63" style={{ marginLeft: 8 }} />
             <Text style={styles.sectionHeaderTitle}>نبذة عني</Text>
           </View>
           <Text style={styles.bioText}>
@@ -146,7 +146,7 @@ export default function ProfileScreen({ navigation }) {
         {/* Section 2: Location & Housing (الموقع والسكن) */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
-            <Ionicons name="location" size={20} color="#0284C7" style={{ marginLeft: 8 }} />
+            <Ionicons name="location-outline" size={20} color="#0284C7" style={{ marginLeft: 8 }} />
             <Text style={styles.sectionHeaderTitle}>الموقع والسكن</Text>
           </View>
 
@@ -175,7 +175,7 @@ export default function ProfileScreen({ navigation }) {
         {/* Section 3: Education & Work (التعليم والعمل) */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
-            <Ionicons name="school" size={20} color="#8B5CF6" style={{ marginLeft: 8 }} />
+            <Ionicons name="school-outline" size={20} color="#8B5CF6" style={{ marginLeft: 8 }} />
             <Text style={styles.sectionHeaderTitle}>التعليم والعمل والالتزام</Text>
           </View>
 
@@ -208,7 +208,7 @@ export default function ProfileScreen({ navigation }) {
         {/* Section 4: Partner Specs (شريك الحياة المطلوب) */}
         <View style={[styles.sectionCard, styles.partnerSpecsCard]}>
           <View style={styles.sectionHeaderRow}>
-            <Ionicons name="heart" size={20} color="#E91E63" style={{ marginLeft: 8 }} />
+            <Ionicons name="heart-outline" size={20} color="#E91E63" style={{ marginLeft: 8 }} />
             <Text style={styles.sectionHeaderTitle}>شريك الحياة المطلوب</Text>
           </View>
 

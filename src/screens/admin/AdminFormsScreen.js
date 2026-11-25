@@ -111,7 +111,7 @@ export default function AdminFormsScreen({ navigation }) {
           style={styles.reviewBtn}
           onPress={() => setSelectedProfile(item)}
         >
-          <Ionicons name="eye" size={17} color="#E91E63" />
+          <Ionicons name="eye-outline" size={17} color="#E91E63" style={{ marginLeft: 6 }} />
           <Text style={styles.reviewBtnText}>فحص الاستمارة بالكامل</Text>
         </TouchableOpacity>
       </View>
@@ -168,7 +168,7 @@ export default function AdminFormsScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Ionicons name="document-text" size={48} color="#CBD5E1" />
+              <Ionicons name="document-text-outline" size={48} color="#CBD5E1" />
               <Text style={styles.emptyText}>لا توجد استمارات مكتملة حالياً.</Text>
             </View>
           }
@@ -181,7 +181,7 @@ export default function AdminFormsScreen({ navigation }) {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setSelectedProfile(null)}>
-                <Ionicons name="close-circle" size={26} color="#8B94B7" />
+                <Ionicons name="close-circle-outline" size={26} color="#8B94B7" />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>تفاصيل استمارة الزواج الشرعي</Text>
             </View>
@@ -242,9 +242,10 @@ export default function AdminFormsScreen({ navigation }) {
                     onPress={() => handleConvertGender(selectedProfile)}
                   >
                     <Ionicons
-                      name="swap-horizontal"
+                      name="swap-horizontal-outline"
                       size={18}
                       color={selectedProfile.gender === 'male' ? '#DB2777' : '#0284C7'}
+                      style={{ marginLeft: 6 }}
                     />
                     <Text
                       style={[
@@ -253,8 +254,8 @@ export default function AdminFormsScreen({ navigation }) {
                       ]}
                     >
                       {selectedProfile.gender === 'male'
-                        ? '🔄 تحويل الاستمارة إلى عروسة 🌸'
-                        : '🔄 تحويل الاستمارة إلى عريس 👔'}
+                        ? 'تحويل الاستمارة إلى عروسة'
+                        : 'تحويل الاستمارة إلى عريس'}
                     </Text>
                   </TouchableOpacity>
                 )}

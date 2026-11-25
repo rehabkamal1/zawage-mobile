@@ -53,17 +53,17 @@ export default function TabNavigator() {
           let iconName;
 
           if (route.name === 'HomeTab') {
-            iconName = 'home';
+            iconName = 'home-outline';
           } else if (route.name === 'FavoritesTab') {
-            iconName = 'heart';
+            iconName = 'heart-outline';
           } else if (route.name === 'EditProfileTab') {
-            iconName = 'document-text';
+            iconName = 'document-text-outline';
           } else if (route.name === 'SubscriptionsTab') {
-            iconName = 'card';
+            iconName = 'card-outline';
           } else if (route.name === 'ProfileTab') {
-            iconName = 'person';
+            iconName = 'person-outline';
           } else if (route.name === 'MoreTab') {
-            iconName = 'ellipsis-horizontal';
+            iconName = 'ellipsis-horizontal-outline';
           }
 
           return <Ionicons name={iconName} size={23} color={color} />;

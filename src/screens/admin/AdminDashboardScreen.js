@@ -116,7 +116,7 @@ export default function AdminDashboardScreen({ navigation }) {
               <StatBox
                 title="إجمالي الأعضاء"
                 value={stats?.total_users}
-                icon="people"
+                icon="people-outline"
                 color="#E91E63"
                 bg="#FFF0F5"
               />
@@ -137,7 +137,7 @@ export default function AdminDashboardScreen({ navigation }) {
               <StatBox
                 title="الحسابات المحظورة"
                 value={stats?.banned_users}
-                icon="ban"
+                icon="ban-outline"
                 color="#E11D48"
                 bg="#FFF1F2"
               />
@@ -150,7 +150,7 @@ export default function AdminDashboardScreen({ navigation }) {
               activeOpacity={0.88}
             >
               <View style={styles.alertIconBox}>
-                <Ionicons name="warning" size={26} color="#D97706" />
+                <Ionicons name="warning-outline" size={26} color="#D97706" />
               </View>
               <View style={styles.alertDetails}>
                 <Text style={styles.alertTitle}>البلاغات والشكاوى المعلقة</Text>
@@ -193,7 +193,7 @@ export default function AdminDashboardScreen({ navigation }) {
                 <Ionicons name="chevron-back" size={18} color="#8B94B7" />
                 <Text style={styles.actionRowText}>إدارة الأعضاء والبحث والحظر</Text>
                 <View style={[styles.actionIconBox, { backgroundColor: '#EFF6FF' }]}>
-                  <Ionicons name="people" size={20} color="#0284C7" />
+                  <Ionicons name="people-outline" size={20} color="#0284C7" />
                 </View>
               </TouchableOpacity>
 
@@ -204,7 +204,7 @@ export default function AdminDashboardScreen({ navigation }) {
                 <Ionicons name="chevron-back" size={18} color="#8B94B7" />
                 <Text style={styles.actionRowText}>مراجعة الاستمارات والبيانات</Text>
                 <View style={[styles.actionIconBox, { backgroundColor: '#FDF2F8' }]}>
-                  <Ionicons name="document-text" size={20} color="#E91E63" />
+                  <Ionicons name="document-text-outline" size={20} color="#E91E63" />
                 </View>
               </TouchableOpacity>
 
@@ -216,7 +216,7 @@ export default function AdminDashboardScreen({ navigation }) {
                   <Ionicons name="chevron-back" size={18} color="#8B94B7" />
                   <Text style={styles.actionRowText}>إيصالات التحويل وفودافون كاش</Text>
                   <View style={[styles.actionIconBox, { backgroundColor: '#ECFDF5' }]}>
-                    <Ionicons name="receipt" size={20} color="#059669" />
+                    <Ionicons name="receipt-outline" size={20} color="#059669" />
                   </View>
                 </TouchableOpacity>
               )}

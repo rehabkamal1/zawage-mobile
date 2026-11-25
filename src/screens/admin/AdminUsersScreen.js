@@ -25,7 +25,7 @@ export default function AdminUsersScreen({ navigation }) {
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'members' | 'male' | 'female' | 'admins'
+  const [activeTab, setActiveTab] = useState('members'); // 'members' | 'male' | 'female' | 'admins'
 
   // Role Change Modal
   const [selectedUser, setSelectedUser] = useState(null);
@@ -62,7 +62,7 @@ export default function AdminUsersScreen({ navigation }) {
       );
     }
 
-    if (activeTab === 'members') {
+    if (activeTab === 'members' || activeTab === 'all') {
       result = result.filter(u => u.role === 'user');
     } else if (activeTab === 'male') {
       result = result.filter(u => u.gender === 'male' && u.role === 'user');
@@ -186,12 +186,12 @@ export default function AdminUsersScreen({ navigation }) {
         </View>
 
         <View style={styles.infoRow}>
-          <Ionicons name="call" size={15} color="#8B94B7" />
+          <Ionicons name="call-outline" size={15} color="#8B94B7" />
           <Text style={styles.infoText}>{item.phone || 'بدون هاتف'}</Text>
         </View>
         {item.email && (
           <View style={styles.infoRow}>
-            <Ionicons name="mail" size={15} color="#8B94B7" />
+            <Ionicons name="mail-outline" size={15} color="#8B94B7" />
             <Text style={styles.infoText}>{item.email}</Text>
           </View>
         )}
@@ -212,7 +212,7 @@ export default function AdminUsersScreen({ navigation }) {
               style={[styles.actionBtn, isBanned ? styles.actionBtnUnban : styles.actionBtnBan]}
               onPress={() => handleToggleBan(item)}
             >
-              <Ionicons name={isBanned ? 'checkmark-circle' : 'ban'} size={15} color="#FFFFFF" />
+              <Ionicons name={isBanned ? 'checkmark-circle-outline' : 'ban-outline'} size={15} color="#FFFFFF" />
               <Text style={styles.actionBtnText}>{isBanned ? 'فك الحظر' : 'حظر الحساب'}</Text>
             </TouchableOpacity>
 
@@ -229,7 +229,7 @@ export default function AdminUsersScreen({ navigation }) {
                 onPress={() => handleChangeGender(item)}
               >
                 <Ionicons
-                  name={item.gender === 'male' ? 'woman' : 'man'}
+                  name={item.gender === 'male' ? 'woman-outline' : 'man-outline'}
                   size={15}
                   color={item.gender === 'male' ? '#DB2777' : '#0284C7'}
                 />
@@ -254,7 +254,7 @@ export default function AdminUsersScreen({ navigation }) {
                   setShowRoleModal(true);
                 }}
               >
-                <Ionicons name="shield" size={15} color="#2D1B4D" />
+                <Ionicons name="shield-outline" size={15} color="#2D1B4D" />
                 <Text style={[styles.actionBtnText, { color: '#2D1B4D' }]}>تغيير الصلاحية</Text>
               </TouchableOpacity>
             )}
@@ -263,7 +263,7 @@ export default function AdminUsersScreen({ navigation }) {
               style={[styles.actionBtn, styles.actionBtnDelete]}
               onPress={() => handleDeleteUser(item)}
             >
-              <Ionicons name="trash" size={15} color="#E11D48" />
+              <Ionicons name="trash-outline" size={15} color="#E11D48" />
               <Text style={[styles.actionBtnText, { color: '#E11D48' }]}>حذف نهائي</Text>
             </TouchableOpacity>
           </View>
@@ -284,7 +284,7 @@ export default function AdminUsersScreen({ navigation }) {
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchWrapper}>
-          <Ionicons name="search" size={20} color="#8B94B7" style={{ marginLeft: 8 }} />
+          <Ionicons name="search-outline" size={20} color="#8B94B7" style={{ marginLeft: 8 }} />
           <TextInput
             style={styles.searchInput}
             placeholder="بحث بالاسم أو رقم الهاتف أو البريد..."
@@ -295,7 +295,7 @@ export default function AdminUsersScreen({ navigation }) {
           />
           {search ? (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              <Ionicons name="close-circle-outline" size={18} color="#94A3B8" />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -306,15 +306,6 @@ export default function AdminUsersScreen({ navigation }) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterPillsScroll}
         >
-          <TouchableOpacity
-            style={[styles.pill, activeTab === 'all' && styles.pillActive]}
-            onPress={() => setActiveTab('all')}
-          >
-            <Text style={[styles.pillText, activeTab === 'all' && styles.pillTextActive]}>
-              الكل ({users.length})
-            </Text>
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={[styles.pill, activeTab === 'members' && styles.pillActive]}
             onPress={() => setActiveTab('members')}
@@ -366,7 +357,7 @@ export default function AdminUsersScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Ionicons name="people" size={48} color="#CBD5E1" />
+              <Ionicons name="people-outline" size={48} color="#CBD5E1" />
               <Text style={styles.emptyText}>لم يتم العثور على أي أعضاء مطابقين للبحث.</Text>
             </View>
           }

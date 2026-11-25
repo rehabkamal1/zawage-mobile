@@ -125,7 +125,7 @@ export default function LoginScreen({ navigation }) {
               activeOpacity={0.8}
             >
               <Ionicons
-                name="call"
+                name="call-outline"
                 size={17}
                 color={authMethod === 'phone' ? '#FFFFFF' : '#475569'}
                 style={{ marginLeft: 6 }}
@@ -146,7 +146,7 @@ export default function LoginScreen({ navigation }) {
               activeOpacity={0.8}
             >
               <Ionicons
-                name="mail"
+                name="mail-outline"
                 size={17}
                 color={authMethod === 'email' ? '#FFFFFF' : '#475569'}
                 style={{ marginLeft: 6 }}
@@ -163,7 +163,7 @@ export default function LoginScreen({ navigation }) {
           {authMethod === 'phone' ? (
             <View style={styles.inputGroup}>
               <View style={[styles.inputWrapper, errors.phone && styles.inputWrapperError]}>
-                <Ionicons name="call" size={20} color="#8B94B7" style={styles.inputIcon} />
+                <Ionicons name="call-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="رقم الهاتف (مثال: 01012345678)"
@@ -182,7 +182,7 @@ export default function LoginScreen({ navigation }) {
           ) : (
             <View style={styles.inputGroup}>
               <View style={[styles.inputWrapper, errors.email && styles.inputWrapperError]}>
-                <Ionicons name="mail" size={20} color="#8B94B7" style={styles.inputIcon} />
+                <Ionicons name="mail-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="البريد الإلكتروني"
@@ -204,7 +204,7 @@ export default function LoginScreen({ navigation }) {
           {/* Password Field */}
           <View style={styles.inputGroup}>
             <View style={[styles.inputWrapper, errors.password && styles.inputWrapperError]}>
-              <Ionicons name="lock-closed" size={20} color="#8B94B7" style={styles.inputIcon} />
+              <Ionicons name="lock-closed-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { paddingLeft: 40 }]}
                 placeholder="كلمة المرور"
@@ -222,7 +222,7 @@ export default function LoginScreen({ navigation }) {
                 style={styles.eyeBtn}
               >
                 <Ionicons
-                  name={showPassword ? 'eye-off' : 'eye'}
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
                   color="#8B94B7"
                 />

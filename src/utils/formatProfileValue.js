@@ -143,20 +143,41 @@ export function formatProfileValue(val, fallback = '—', gender = null) {
   const rawStr = String(val).trim();
   const lowerStr = rawStr.toLowerCase();
 
+  // If compound like "minya - minya" or "cairo / cairo"
+  if (lowerStr.includes(' - ') || lowerStr.includes(' / ')) {
+    const sep = lowerStr.includes(' - ') ? ' - ' : ' / ';
+    const parts = rawStr.split(sep).map(p => formatProfileValue(p.trim(), '', gender)).filter(Boolean);
+    const uniqueParts = [...new Set(parts)];
+    if (uniqueParts.length === 1) return uniqueParts[0];
+    return uniqueParts.join(' - ');
+  }
+
   // Gender specific overrides
   if (gender === 'female' || gender === 'bride') {
-    if (lowerStr === 'single') return 'عزباء';
+    if (lowerStr === 'single') return 'آنسة / عزباء';
     if (lowerStr === 'divorced') return 'مطلقة';
     if (lowerStr === 'widowed') return 'أرملة';
-    if (lowerStr === 'no' || lowerStr === '0' || lowerStr === 'false') return 'لا (غير مدخنة)';
-    if (lowerStr === 'yes' || lowerStr === '1' || lowerStr === 'true') return 'نعم (مدخنة)';
+    if (lowerStr === 'always') return 'محافظة دائماً على الصلاة';
+    if (lowerStr === 'hijab') return 'محجبة (طرحة / خمار)';
+    if (lowerStr === 'no' || lowerStr === '0' || lowerStr === 'false') return 'غير مدخنة';
+    if (lowerStr === 'yes' || lowerStr === '1' || lowerStr === 'true') return 'مدخنة';
   } else if (gender === 'male' || gender === 'groom') {
     if (lowerStr === 'single') return 'أعزب';
     if (lowerStr === 'divorced') return 'مطلق';
     if (lowerStr === 'widowed') return 'أرمل';
+    if (lowerStr === 'always') return 'محافظ دائماً في المسجد';
     if (lowerStr === 'no' || lowerStr === '0' || lowerStr === 'false') return 'غير مدخن';
     if (lowerStr === 'yes' || lowerStr === '1' || lowerStr === 'true') return 'مدخن';
   }
+
+  // Common terms
+  if (lowerStr === 'always') return 'محافظ دائماً';
+  if (lowerStr === 'hijab') return 'محجبة (طرحة / خمار)';
+  if (lowerStr === 'divorced') return 'مطلق / مطلقة';
+  if (lowerStr === 'single') return 'أعزب / عزباء';
+  if (lowerStr === 'widowed') return 'أرمل / أرملة';
+  if (lowerStr === 'no') return 'لا (غير مدخن)';
+  if (lowerStr === 'yes') return 'نعم';
 
   // Check dictionary
   if (ARABIC_DICTIONARY[lowerStr]) {

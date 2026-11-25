@@ -71,9 +71,9 @@ export default function PartnerCard({
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Ionicons
-          name="heart"
+          name={isFavorite ? 'heart' : 'heart-outline'}
           size={21}
-          color={isFavorite ? '#E91E63' : '#CBD5E1'}
+          color={isFavorite ? '#E91E63' : '#8B94B7'}
         />
       </TouchableOpacity>
 
@@ -90,7 +90,7 @@ export default function PartnerCard({
             <Text style={styles.scoreLabel}>نسبة التوافق</Text>
           </View>
         ) : (
-          <Ionicons name="heart" size={54} color="#E91E63" style={{ opacity: 0.12 }} />
+          <Ionicons name="heart-outline" size={54} color="#E91E63" style={{ opacity: 0.12 }} />
         )}
       </LinearGradient>
 
@@ -104,10 +104,10 @@ export default function PartnerCard({
 
         {/* Location & Job Meta */}
         <View style={styles.metaRow}>
-          <Ionicons name="location" size={13} color="#E91E63" style={{ marginLeft: 3 }} />
+          <Ionicons name="location-outline" size={13} color="#E91E63" style={{ marginLeft: 3 }} />
           <Text style={styles.metaText} numberOfLines={1}>{formatLocation(profile.governorate, profile.area)}</Text>
           <Text style={styles.metaDot}>•</Text>
-          <Ionicons name="briefcase" size={13} color="#6366F1" style={{ marginLeft: 3 }} />
+          <Ionicons name="briefcase-outline" size={13} color="#6366F1" style={{ marginLeft: 3 }} />
           <Text style={styles.metaText} numberOfLines={1}>{formatProfileValue(profile.job, 'الوظيفة غير محددة')}</Text>
         </View>
 
@@ -153,7 +153,7 @@ export default function PartnerCard({
                 end={{ x: 1, y: 0 }}
                 style={styles.btnUnlock}
               >
-                <Ionicons name="lock-closed" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                <Ionicons name="lock-closed-outline" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
                 <Text style={styles.btnUnlockText} numberOfLines={1}>فك القفل والتواصل</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -164,7 +164,7 @@ export default function PartnerCard({
             activeOpacity={0.88}
             onPress={onPress}
           >
-            <Ionicons name="information-circle" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
+            <Ionicons name="information-circle-outline" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
             <Text style={styles.btnDetailsText} numberOfLines={1}>التفاصيل</Text>
           </TouchableOpacity>
         </View>

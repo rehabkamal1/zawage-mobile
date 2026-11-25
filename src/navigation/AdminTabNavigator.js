@@ -51,17 +51,17 @@ export default function AdminTabNavigator() {
           let iconName;
 
           if (route.name === 'AdminDashboardTab') {
-            iconName = 'stats-chart';
+            iconName = 'stats-chart-outline';
           } else if (route.name === 'AdminUsersTab') {
-            iconName = 'people';
+            iconName = 'people-outline';
           } else if (route.name === 'AdminFormsTab') {
-            iconName = 'document-text';
+            iconName = 'document-text-outline';
           } else if (route.name === 'AdminPaymentsTab') {
-            iconName = 'receipt';
+            iconName = 'receipt-outline';
           } else if (route.name === 'AdminReportsTab') {
-            iconName = 'shield-alert';
+            iconName = 'shield-alert-outline';
           } else if (route.name === 'AdminSettingsTab') {
-            iconName = 'settings';
+            iconName = 'settings-outline';
           }
 
           return <Ionicons name={iconName} size={22} color={color} />;

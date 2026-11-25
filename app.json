@@ -2,7 +2,7 @@
   "expo": {
     "name": "نصفي الآخر",
     "slug": "nosfy-alakhar",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.nosfialakhar.app",
-      "versionCode": 9,
+      "versionCode": 10,
       "permissions": [
         "INTERNET"
       ],
