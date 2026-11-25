@@ -122,6 +122,14 @@ export default function MoreScreen({ navigation }) {
       onPress: () => navigation.navigate('Privacy'),
     },
     {
+      id: 'onboarding',
+      title: 'دليل ومميزات التطبيق (الجولة التعريفية)',
+      icon: 'sparkles',
+      color: '#E91E63',
+      bgColor: '#FDF2F8',
+      onPress: () => navigation.navigate('Onboarding'),
+    },
+    {
       id: 'about',
       title: 'عن منصة نصفي الآخر',
       icon: 'information-circle',

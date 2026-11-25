@@ -53,7 +53,7 @@ export default function TabNavigator() {
           let iconName;
 
           if (route.name === 'HomeTab') {
-            iconName = isMale ? 'search' : 'heart';
+            iconName = 'home';
           } else if (route.name === 'FavoritesTab') {
             iconName = 'heart';
           } else if (route.name === 'EditProfileTab') {

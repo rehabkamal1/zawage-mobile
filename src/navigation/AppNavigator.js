@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import TabNavigator from './TabNavigator';
 import AdminTabNavigator from './AdminTabNavigator';
+import OnboardingScreen, { ONBOARDING_KEY } from '../screens/auth/OnboardingScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import OtpScreen from '../screens/auth/OtpScreen';
@@ -23,8 +25,21 @@ const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const { isAuthenticated, isAdmin, loading } = useAuth();
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(null);
 
-  if (loading) {
+  useEffect(() => {
+    async function checkOnboardingStatus() {
+      try {
+        const seen = await AsyncStorage.getItem(ONBOARDING_KEY);
+        setHasSeenOnboarding(seen === 'true');
+      } catch (e) {
+        setHasSeenOnboarding(true);
+      }
+    }
+    checkOnboardingStatus();
+  }, []);
+
+  if (loading || hasSeenOnboarding === null) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -32,10 +47,24 @@ export default function AppNavigator() {
     );
   }
 
-  // 1. Unauthenticated Users -> Auth Flow
+  // 1. Unauthenticated Users -> Auth Flow (First time shows Onboarding, then Login)
   if (!isAuthenticated) {
     return (
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack.Navigator
+        initialRouteName={hasSeenOnboarding ? 'Login' : 'Onboarding'}
+        screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
+      >
+        <Stack.Screen name="Onboarding">
+          {(props) => (
+            <OnboardingScreen
+              {...props}
+              onFinish={() => {
+                setHasSeenOnboarding(true);
+                props.navigation.replace('Login');
+              }}
+            />
+          )}
+        </Stack.Screen>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Otp" component={OtpScreen} />
@@ -59,6 +88,7 @@ export default function AppNavigator() {
         <Stack.Screen name="SubscriptionScreen" component={SubscriptionScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Terms" component={TermsScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
         <Stack.Screen name="About" component={AboutScreen} />
@@ -77,6 +107,7 @@ export default function AppNavigator() {
       <Stack.Screen name="SubscriptionScreen" component={SubscriptionScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} />
       <Stack.Screen name="Privacy" component={PrivacyScreen} />
       <Stack.Screen name="About" component={AboutScreen} />
