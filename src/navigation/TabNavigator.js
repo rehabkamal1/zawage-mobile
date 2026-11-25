@@ -53,20 +53,20 @@ export default function TabNavigator() {
           let iconName;
 
           if (route.name === 'HomeTab') {
-            iconName = focused ? (isMale ? 'search' : 'heart') : (isMale ? 'search-outline' : 'heart-outline');
+            iconName = isMale ? 'search' : 'heart';
           } else if (route.name === 'FavoritesTab') {
-            iconName = focused ? 'heart' : 'heart-outline';
+            iconName = 'heart';
           } else if (route.name === 'EditProfileTab') {
-            iconName = focused ? 'document-text' : 'document-text-outline';
+            iconName = 'document-text';
           } else if (route.name === 'SubscriptionsTab') {
-            iconName = focused ? 'card' : 'card-outline';
+            iconName = 'card';
           } else if (route.name === 'ProfileTab') {
-            iconName = focused ? 'person' : 'person-outline';
+            iconName = 'person';
           } else if (route.name === 'MoreTab') {
-            iconName = focused ? 'ellipsis-horizontal' : 'ellipsis-horizontal-outline';
+            iconName = 'ellipsis-horizontal';
           }
 
-          return <Ionicons name={iconName} size={22} color={color} />;
+          return <Ionicons name={iconName} size={23} color={color} />;
         },
       })}
     >

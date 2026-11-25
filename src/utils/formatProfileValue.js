@@ -97,11 +97,14 @@ const ARABIC_DICTIONARY = {
   family: 'بيت عائلة',
   rent: 'إيجار',
   own: 'تمليك',
+  independent: 'شقة مستقلة',
 
   // المستوى المادي
   low: 'متوسط / مقبول',
+  medium: 'متوسط',
   good: 'جيد',
   high: 'ممتاز / مرتفع',
+  unspecified: 'غير محدد',
 
   // القائمة
   agreement: 'حسب الاتفاق الشرعي',
@@ -114,17 +117,46 @@ const ARABIC_DICTIONARY = {
   student: 'طالب / طالبة',
   employee: 'موظف / موظفة',
   business_owner: 'أعمال حرة / صاحب عمل',
+  freelancer: 'عمل حر / مستقل',
+  teacher: 'معلم / تدريس',
+  doctor: 'طبيب / صيدلي',
+  engineer: 'مهندس',
+  none: 'لا أعمل حالياً',
+
+  // المؤهل الدراسي
+  high_school: 'ثانوية عامة / دبلوم',
+  bachelor: 'مؤهل عالي (جامعي)',
+  higher: 'مؤهل عالي',
+  university: 'مؤهل جامعي',
+  diploma: 'دبلوم متوسط',
+  master: 'ماجستير',
+  phd: 'دكتوراه',
 };
 
 /**
  * Format any profile value to clean, readable Arabic.
  */
-export function formatProfileValue(val, fallback = '—') {
+export function formatProfileValue(val, fallback = '—', gender = null) {
   if (val === null || val === undefined || val === '') return fallback;
   if (typeof val === 'boolean') return val ? 'نعم' : 'لا';
 
   const rawStr = String(val).trim();
   const lowerStr = rawStr.toLowerCase();
+
+  // Gender specific overrides
+  if (gender === 'female' || gender === 'bride') {
+    if (lowerStr === 'single') return 'عزباء';
+    if (lowerStr === 'divorced') return 'مطلقة';
+    if (lowerStr === 'widowed') return 'أرملة';
+    if (lowerStr === 'no' || lowerStr === '0' || lowerStr === 'false') return 'لا (غير مدخنة)';
+    if (lowerStr === 'yes' || lowerStr === '1' || lowerStr === 'true') return 'نعم (مدخنة)';
+  } else if (gender === 'male' || gender === 'groom') {
+    if (lowerStr === 'single') return 'أعزب';
+    if (lowerStr === 'divorced') return 'مطلق';
+    if (lowerStr === 'widowed') return 'أرمل';
+    if (lowerStr === 'no' || lowerStr === '0' || lowerStr === 'false') return 'غير مدخن';
+    if (lowerStr === 'yes' || lowerStr === '1' || lowerStr === 'true') return 'مدخن';
+  }
 
   // Check dictionary
   if (ARABIC_DICTIONARY[lowerStr]) {

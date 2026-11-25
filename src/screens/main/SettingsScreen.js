@@ -218,7 +218,7 @@ export default function SettingsScreen({ navigation }) {
                 onPress={() => setShowPassword(!showPassword)}
               >
                 <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  name={showPassword ? 'eye-off' : 'eye'}
                   size={18}
                   color="#64748B"
                   style={{ marginLeft: 6 }}
@@ -238,7 +238,7 @@ export default function SettingsScreen({ navigation }) {
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <>
-                    <Ionicons name="save-outline" size={19} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                    <Ionicons name="save" size={19} color="#FFFFFF" style={{ marginLeft: 6 }} />
                     <Text style={styles.submitBtnText}>حفظ كلمة المرور الجديدة</Text>
                   </>
                 )}
@@ -288,7 +288,7 @@ export default function SettingsScreen({ navigation }) {
               onPress={handleSaveNotifications}
               activeOpacity={0.88}
             >
-              <Ionicons name="save-outline" size={19} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Ionicons name="save" size={19} color="#FFFFFF" style={{ marginLeft: 6 }} />
               <Text style={styles.submitBtnText}>حفظ تفضيلات التنبيهات</Text>
             </TouchableOpacity>
           </View>

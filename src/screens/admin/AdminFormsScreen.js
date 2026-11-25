@@ -111,7 +111,7 @@ export default function AdminFormsScreen({ navigation }) {
           style={styles.reviewBtn}
           onPress={() => setSelectedProfile(item)}
         >
-          <Ionicons name="eye-outline" size={17} color="#E91E63" />
+          <Ionicons name="eye" size={17} color="#E91E63" />
           <Text style={styles.reviewBtnText}>فحص الاستمارة بالكامل</Text>
         </TouchableOpacity>
       </View>
@@ -168,7 +168,7 @@ export default function AdminFormsScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Ionicons name="document-text-outline" size={48} color="#CBD5E1" />
+              <Ionicons name="document-text" size={48} color="#CBD5E1" />
               <Text style={styles.emptyText}>لا توجد استمارات مكتملة حالياً.</Text>
             </View>
           }
@@ -195,20 +195,22 @@ export default function AdminFormsScreen({ navigation }) {
 
                 <Text style={styles.sectionHeading}>البيانات العامة والمواصفات</Text>
                 <SpecItem label="المحافظة والمنطقة" value={formatLocation(selectedProfile.profile?.governorate, selectedProfile.profile?.area)} />
-                <SpecItem label="الحالة الاجتماعية" value={formatProfileValue(selectedProfile.profile?.marital_status)} />
-                <SpecItem label="تاريخ الميلاد" value={selectedProfile.profile?.dob} />
-                <SpecItem label="المؤهل الدراسي" value={formatProfileValue(selectedProfile.profile?.education)} />
-                <SpecItem label="الوظيفة / العمل" value={formatProfileValue(selectedProfile.profile?.job)} />
-                <SpecItem label="مستوى الدخل" value={formatProfileValue(selectedProfile.profile?.income)} />
-                <SpecItem label="السكن" value={formatProfileValue(selectedProfile.profile?.accommodation)} />
+                <SpecItem label="الحالة الاجتماعية" value={formatProfileValue(selectedProfile.profile?.marital_status, '—', selectedProfile.gender)} />
+                <SpecItem label="تاريخ الميلاد" value={selectedProfile.profile?.dob || '—'} />
+                <SpecItem label="المؤهل الدراسي" value={formatProfileValue(selectedProfile.profile?.education, '—', selectedProfile.gender)} />
+                <SpecItem label="الوظيفة / العمل" value={formatProfileValue(selectedProfile.profile?.job, '—', selectedProfile.gender)} />
+                <SpecItem label="مستوى الدخل" value={formatProfileValue(selectedProfile.profile?.income, '—', selectedProfile.gender)} />
+                <SpecItem label="السكن" value={formatProfileValue(selectedProfile.profile?.accommodation, '—', selectedProfile.gender)} />
                 <SpecItem label="الطول والوزن" value={`${selectedProfile.profile?.height || '—'} سم / ${selectedProfile.profile?.weight || '—'} كجم`} />
-                <SpecItem label="لون البشرة" value={formatProfileValue(selectedProfile.profile?.skin_tone)} />
+                <SpecItem label="لون البشرة" value={formatProfileValue(selectedProfile.profile?.skin_tone, '—', selectedProfile.gender)} />
 
                 <Text style={styles.sectionHeading}>الالتزام الديني والشرعي</Text>
-                <SpecItem label="المحافظة على الصلاة" value={formatProfileValue(selectedProfile.profile?.prayer)} />
-                <SpecItem label="الحجاب / النقاب" value={formatProfileValue(selectedProfile.profile?.hijab)} />
-                <SpecItem label="التدخين" value={formatProfileValue(selectedProfile.profile?.smoking)} />
-                <SpecItem label="موقف القائمة" value={formatProfileValue(selectedProfile.profile?.qaima_status)} />
+                <SpecItem label="المحافظة على الصلاة" value={formatProfileValue(selectedProfile.profile?.prayer, '—', selectedProfile.gender)} />
+                {selectedProfile.gender === 'female' ? (
+                  <SpecItem label="الحجاب / النقاب" value={formatProfileValue(selectedProfile.profile?.hijab, '—', 'female')} />
+                ) : null}
+                <SpecItem label="التدخين" value={formatProfileValue(selectedProfile.profile?.smoking, '—', selectedProfile.gender)} />
+                <SpecItem label="موقف القائمة" value={formatProfileValue(selectedProfile.profile?.qaima_status, '—', selectedProfile.gender)} />
 
                 {selectedProfile.profile?.bio ? (
                   <>

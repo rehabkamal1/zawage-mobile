@@ -244,7 +244,7 @@ export default function RegisterScreen({ navigation }) {
               {/* Name Field (Optional) */}
               <View style={styles.inputGroup}>
                 <View style={styles.inputWrapper}>
-                  <Ionicons name="person-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+                  <Ionicons name="person" size={20} color="#8B94B7" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="الاسم أو اللقب (اختياري)"
@@ -260,7 +260,7 @@ export default function RegisterScreen({ navigation }) {
               {authMethod === 'phone' ? (
                 <View style={styles.inputGroup}>
                   <View style={[styles.inputWrapper, errors.phone && styles.inputWrapperError]}>
-                    <Ionicons name="call-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+                    <Ionicons name="call" size={20} color="#8B94B7" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="رقم الهاتف (مثال: 01012345678)"
@@ -279,7 +279,7 @@ export default function RegisterScreen({ navigation }) {
               ) : (
                 <View style={styles.inputGroup}>
                   <View style={[styles.inputWrapper, errors.email && styles.inputWrapperError]}>
-                    <Ionicons name="mail-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+                    <Ionicons name="mail" size={20} color="#8B94B7" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="البريد الإلكتروني"
@@ -301,7 +301,7 @@ export default function RegisterScreen({ navigation }) {
               {/* Password Field */}
               <View style={styles.inputGroup}>
                 <View style={[styles.inputWrapper, errors.password && styles.inputWrapperError]}>
-                  <Ionicons name="lock-closed-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+                  <Ionicons name="lock-closed" size={20} color="#8B94B7" style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { paddingLeft: 40 }]}
                     placeholder="كلمة المرور (زيادة أمان)"
@@ -319,7 +319,7 @@ export default function RegisterScreen({ navigation }) {
                     style={styles.eyeBtn}
                   >
                     <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      name={showPassword ? 'eye-off' : 'eye'}
                       size={20}
                       color="#8B94B7"
                     />
@@ -442,7 +442,7 @@ export default function RegisterScreen({ navigation }) {
               {/* Step 2: OTP Verification */}
               <View style={styles.inputGroup}>
                 <View style={[styles.inputWrapper, errors.otp && styles.inputWrapperError]}>
-                  <Ionicons name="key-outline" size={20} color="#8B94B7" style={styles.inputIcon} />
+                  <Ionicons name="key" size={20} color="#8B94B7" style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { textAlign: 'center', letterSpacing: 4 }]}
                     placeholder="رمز التحقق (OTP)"

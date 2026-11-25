@@ -85,7 +85,7 @@ export default function ProfileScreen({ navigation }) {
           onPress={() => navigation.navigate('EditProfile')}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="create-outline" size={22} color="#E91E63" />
+          <Ionicons name="create" size={22} color="#E91E63" />
         </TouchableOpacity>
       </View>
 
@@ -104,19 +104,19 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.tagsRow}>
             {profile.job ? (
               <View style={styles.metaTag}>
-                <Ionicons name="briefcase-outline" size={13} color="#E91E63" style={{ marginLeft: 4 }} />
+                <Ionicons name="briefcase" size={13} color="#E91E63" style={{ marginLeft: 4 }} />
                 <Text style={styles.metaTagText}>{formatProfileValue(profile.job)}</Text>
               </View>
             ) : null}
             {profile.governorate ? (
               <View style={styles.metaTag}>
-                <Ionicons name="location-outline" size={13} color="#0284C7" style={{ marginLeft: 4 }} />
+                <Ionicons name="location" size={13} color="#0284C7" style={{ marginLeft: 4 }} />
                 <Text style={styles.metaTagText}>{formatProfileValue(profile.governorate)}</Text>
               </View>
             ) : null}
             {profile.marital_status ? (
               <View style={styles.metaTag}>
-                <Ionicons name="heart-outline" size={13} color="#8B5CF6" style={{ marginLeft: 4 }} />
+                <Ionicons name="heart" size={13} color="#8B5CF6" style={{ marginLeft: 4 }} />
                 <Text style={styles.metaTagText}>{formatProfileValue(profile.marital_status)}</Text>
               </View>
             ) : null}
@@ -127,7 +127,7 @@ export default function ProfileScreen({ navigation }) {
             onPress={() => navigation.navigate('EditProfile')}
             activeOpacity={0.88}
           >
-            <Ionicons name="create-outline" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+            <Ionicons name="create" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
             <Text style={styles.editProfileBtnText}>تعديل الاستمارة ✏️</Text>
           </TouchableOpacity>
         </View>

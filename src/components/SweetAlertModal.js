@@ -14,31 +14,31 @@ const { width } = Dimensions.get('window');
 
 const ICONS = {
   success: {
-    name: 'checkmark-circle-outline',
+    name: 'checkmark-circle',
     color: '#10B981',
     bgColor: '#ECFDF5',
     borderColor: '#A7F3D0',
   },
   error: {
-    name: 'close-circle-outline',
+    name: 'close-circle',
     color: '#EF4444',
     bgColor: '#FEF2F2',
     borderColor: '#FECACA',
   },
   warning: {
-    name: 'warning-outline',
+    name: 'warning',
     color: '#F59E0B',
     bgColor: '#FFFBEB',
     borderColor: '#FDE68A',
   },
   info: {
-    name: 'information-circle-outline',
+    name: 'information-circle',
     color: '#6366F1',
     bgColor: '#EEF2FF',
     borderColor: '#C7D2FE',
   },
   question: {
-    name: 'help-circle-outline',
+    name: 'help-circle',
     color: '#0284C7',
     bgColor: '#F0F9FF',
     borderColor: '#BAE6FD',

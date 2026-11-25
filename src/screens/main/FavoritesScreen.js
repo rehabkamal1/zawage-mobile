@@ -176,7 +176,7 @@ export default function FavoritesScreen({ navigation }) {
               onPress={() => navigation.navigate('EditProfileTab')}
               activeOpacity={0.85}
             >
-              <Ionicons name="create-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Ionicons name="create" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
               <Text style={styles.fillFormBtnText}>ملء الاستمارة الآن 📝</Text>
             </TouchableOpacity>
           </View>
@@ -213,7 +213,7 @@ export default function FavoritesScreen({ navigation }) {
             ) : (
               <View style={styles.emptyCard}>
                 <View style={styles.emptyHeartCircle}>
-                  <Ionicons name="heart-dislike-outline" size={44} color="#E91E63" />
+                  <Ionicons name="heart-dislike" size={44} color="#E91E63" />
                 </View>
                 <Text style={styles.emptyTitle}>لا توجد استمارات في المفضلة حالياً</Text>
                 <Text style={styles.emptyDesc}>

@@ -216,7 +216,7 @@ export default function AdminReportsScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Ionicons name="shield-checkmark-outline" size={48} color="#CBD5E1" />
+              <Ionicons name="shield-checkmark" size={48} color="#CBD5E1" />
               <Text style={styles.emptyText}>لا توجد أي بلاغات في هذا القسم.</Text>
             </View>
           }

@@ -71,9 +71,9 @@ export default function PartnerCard({
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Ionicons
-          name={isFavorite ? 'heart' : 'heart-outline'}
-          size={20}
-          color="#E91E63"
+          name="heart"
+          size={21}
+          color={isFavorite ? '#E91E63' : '#CBD5E1'}
         />
       </TouchableOpacity>
 
@@ -104,8 +104,10 @@ export default function PartnerCard({
 
         {/* Location & Job Meta */}
         <View style={styles.metaRow}>
+          <Ionicons name="location" size={13} color="#E91E63" style={{ marginLeft: 3 }} />
           <Text style={styles.metaText} numberOfLines={1}>{formatLocation(profile.governorate, profile.area)}</Text>
           <Text style={styles.metaDot}>•</Text>
+          <Ionicons name="briefcase" size={13} color="#6366F1" style={{ marginLeft: 3 }} />
           <Text style={styles.metaText} numberOfLines={1}>{formatProfileValue(profile.job, 'الوظيفة غير محددة')}</Text>
         </View>
 
@@ -162,7 +164,7 @@ export default function PartnerCard({
             activeOpacity={0.88}
             onPress={onPress}
           >
-            <Ionicons name="information-circle-outline" size={17} color="#2D1B4D" style={{ marginLeft: 6 }} />
+            <Ionicons name="information-circle" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
             <Text style={styles.btnDetailsText} numberOfLines={1}>التفاصيل</Text>
           </TouchableOpacity>
         </View>

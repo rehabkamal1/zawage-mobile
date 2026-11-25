@@ -101,7 +101,7 @@ export default function NotificationsScreen({ navigation }) {
               <View style={styles.textContainer}>
                 <Text style={styles.noteText}>{note.text}</Text>
                 <View style={styles.timeRow}>
-                  <Ionicons name="time-outline" size={13} color="#8B94B7" />
+                  <Ionicons name="time" size={13} color="#8B94B7" />
                   <Text style={styles.timeText}>{note.time}</Text>
                 </View>
               </View>

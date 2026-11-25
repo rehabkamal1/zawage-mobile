@@ -208,14 +208,14 @@ export default function HomeScreen({ navigation }) {
             style={[styles.navBookmarkBtn, { marginLeft: 8 }]}
             onPress={() => navigation.navigate('Notifications')}
           >
-            <Ionicons name="notifications-outline" size={22} color="#2D1B4D" />
+            <Ionicons name="notifications" size={22} color="#2D1B4D" />
           </TouchableOpacity>
           {isMale && (
             <TouchableOpacity
               style={styles.navBookmarkBtn}
               onPress={() => navigation.navigate('FavoritesTab')}
             >
-              <Ionicons name="bookmark-outline" size={22} color="#2D1B4D" />
+              <Ionicons name="bookmark" size={22} color="#2D1B4D" />
             </TouchableOpacity>
           )}
         </View>
@@ -250,7 +250,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('EditProfileTab')}
               activeOpacity={0.88}
             >
-              <Ionicons name="create-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Ionicons name="create" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
               <Text style={styles.fillFormBtnText}>ملء استمارة العروسة الآن 📝</Text>
             </TouchableOpacity>
 
@@ -259,7 +259,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('Settings')}
               activeOpacity={0.8}
             >
-              <Ionicons name="settings-outline" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
+              <Ionicons name="settings" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
               <Text style={styles.brideSecondaryBtnText}>إعدادات الحساب وكلمة المرور ⚙️</Text>
             </TouchableOpacity>
           </View>
@@ -297,7 +297,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('EditProfileTab')}
               activeOpacity={0.88}
             >
-              <Ionicons name="document-text-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Ionicons name="document-text" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
               <Text style={styles.brideActionBtnText}>استعراض وتعديل استمارتي 📝</Text>
             </TouchableOpacity>
 
@@ -306,7 +306,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('Settings')}
               activeOpacity={0.8}
             >
-              <Ionicons name="settings-outline" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
+              <Ionicons name="settings" size={18} color="#2D1B4D" style={{ marginLeft: 6 }} />
               <Text style={styles.brideSecondaryBtnText}>إعدادات الحساب وكلمة المرور ⚙️</Text>
             </TouchableOpacity>
           </View>
@@ -341,7 +341,7 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('EditProfileTab')}
               activeOpacity={0.88}
             >
-              <Ionicons name="create-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Ionicons name="create" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
               <Text style={styles.fillFormBtnText}>ملء الاستمارة الآن 📝</Text>
             </TouchableOpacity>
           </View>
@@ -379,6 +379,83 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.greetingTitle}>
                 أهلاً {userName}، اكتشف شريك حياتك 🌟
               </Text>
+
+              {/* Free Quota Banner (Remaining Free Attempts) */}
+              {isMale && !currentUser?.active_subscription && (currentUser?.free_views_remaining ?? 3) > 0 && (
+                <View style={styles.quotaBannerContainer}>
+                  <View style={styles.quotaBannerHeader}>
+                    <View style={styles.giftIconCircle}>
+                      <Text style={{ fontSize: 22 }}>🎁</Text>
+                    </View>
+                    <View style={styles.quotaBannerTextCol}>
+                      <Text style={styles.quotaBannerTitle}>
+                        هدية التسجيل: 3 استمارات مجانية لفك القفل والتواصل 🌸
+                      </Text>
+                      <Text style={styles.quotaBannerDesc}>
+                        يظهر لك حالياً أفضل 10 استمارات للشركاء الأكثر توافقاً معك، ومعك 3 محاولات مجانية لفك قفل أرقام التواصل والتحدث مع ولي الأمر عبر واتساب. بعد استهلاك رصيدك المجاني يلزم الاشتراك في إحدى الباقات لرؤية استمارات إضافية والتواصل.
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.quotaBadgePill}>
+                    <Text style={styles.quotaBadgeLabel}>رصيد فك القفل المجاني:</Text>
+                    <Text style={styles.quotaBadgeValue}>
+                      {currentUser?.free_views_remaining ?? 3} من 3 استمارات
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Exhausted Free Quota Warning Line / Banner */}
+              {isMale && !currentUser?.active_subscription && (currentUser?.free_views_remaining ?? 3) <= 0 && (
+                <View style={styles.exhaustedBannerContainer}>
+                  <View style={styles.exhaustedBannerHeader}>
+                    <View style={styles.exhaustedIconCircle}>
+                      <Text style={{ fontSize: 20 }}>⚠️</Text>
+                    </View>
+                    <View style={styles.quotaBannerTextCol}>
+                      <Text style={styles.exhaustedBannerTitle}>
+                        لقد استهلكت جميع محاولاتك المجانية (3 من 3)
+                      </Text>
+                      <Text style={styles.exhaustedBannerDesc}>
+                        للتواصل مع استمارات إضافية وفك قفل أرقام أولياء الأمور، يرجى ترقية حسابك والاشتراك في إحدى باقات نصفي الآخر.
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.btnUpgradeNow}
+                    onPress={() => navigation.navigate('SubscriptionsTab')}
+                    activeOpacity={0.88}
+                  >
+                    <Ionicons name="card" size={17} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                    <Text style={styles.btnUpgradeNowText}>الاشتراك وتجديد الباقة الآن</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Active Paid Subscription Banner */}
+              {isMale && currentUser?.active_subscription && (
+                <View style={styles.activeSubBannerContainer}>
+                  <View style={styles.activeSubBannerHeader}>
+                    <View style={styles.crownIconCircle}>
+                      <Text style={{ fontSize: 20 }}>👑</Text>
+                    </View>
+                    <View style={styles.quotaBannerTextCol}>
+                      <Text style={styles.activeSubBannerTitle}>
+                        باقتك مفعلة بنجاح ✨ ({currentUser.active_subscription.type === 'daily' ? 'باقة يومية' : (currentUser.active_subscription.type === 'weekly' ? 'باقة أسبوعية' : 'باقة شهرية')})
+                      </Text>
+                      <Text style={styles.activeSubBannerDesc}>
+                        يمكنك فك قفل استمارات العرايس والتواصل مع أولياء الأمور عبر واتساب مباشرة.
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.activeSubBadgePill}>
+                    <Text style={styles.activeSubBadgeLabel}>رصيد التواصل المتبقي:</Text>
+                    <Text style={styles.activeSubBadgeValue}>
+                      {Math.max(0, (currentUser.active_subscription.views_allowed || 0) - (currentUser.active_subscription.views_used || 0))} استمارة
+                    </Text>
+                  </View>
+                </View>
+              )}
 
               {/* Discovery Tabs: New vs Unlocked vs All */}
               <View style={styles.tabBarContainer}>
@@ -467,7 +544,7 @@ export default function HomeScreen({ navigation }) {
                   onPress={handleLoadMore}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="arrow-down-circle-outline" size={18} color="#E91E63" />
+                  <Ionicons name="arrow-down-circle" size={18} color="#E91E63" />
                   <Text style={styles.loadMoreBtnText}>
                     عرض 10 استمارات إضافية ({activeTabMatches.length - visibleCount} متبقية) ⬇️
                   </Text>
@@ -749,5 +826,186 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     textAlign: 'center',
     paddingVertical: 12,
+  },
+
+  // Quota Banners (Gift & Status & Exhausted)
+  quotaBannerContainer: {
+    backgroundColor: '#FFF0F5',
+    borderWidth: 1.5,
+    borderColor: '#FBCFE8',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    ...SHADOWS.small,
+  },
+  quotaBannerHeader: {
+    flexDirection: 'row-reverse',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  giftIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFE4E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quotaBannerTextCol: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  quotaBannerTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#E91E63',
+    textAlign: 'right',
+  },
+  quotaBannerDesc: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    lineHeight: 18,
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  quotaBadgePill: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#FBCFE8',
+    borderRadius: 14,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    marginTop: 12,
+    gap: 6,
+    alignSelf: 'stretch',
+  },
+  quotaBadgeLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#E91E63',
+  },
+  quotaBadgeValue: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#BE123C',
+  },
+
+  // Exhausted Warning Banner
+  exhaustedBannerContainer: {
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1.5,
+    borderColor: '#FDA4AF',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    ...SHADOWS.small,
+  },
+  exhaustedBannerHeader: {
+    flexDirection: 'row-reverse',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  exhaustedIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exhaustedBannerTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#BE123C',
+    textAlign: 'right',
+  },
+  exhaustedBannerDesc: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#E11D48',
+    lineHeight: 18,
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  btnUpgradeNow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E11D48',
+    paddingVertical: 11,
+    borderRadius: 14,
+    marginTop: 12,
+    ...SHADOWS.small,
+  },
+  btnUpgradeNowText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+
+  // Active Subscription Banner
+  activeSubBannerContainer: {
+    backgroundColor: '#FDF4FF',
+    borderWidth: 1.5,
+    borderColor: '#F0ABFC',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    ...SHADOWS.small,
+  },
+  activeSubBannerHeader: {
+    flexDirection: 'row-reverse',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  crownIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FAE8FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeSubBannerTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#A21CAF',
+    textAlign: 'right',
+  },
+  activeSubBannerDesc: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#701A75',
+    lineHeight: 18,
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  activeSubBadgePill: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#F0ABFC',
+    borderRadius: 14,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    marginTop: 12,
+    gap: 6,
+    alignSelf: 'stretch',
+  },
+  activeSubBadgeLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#A21CAF',
+  },
+  activeSubBadgeValue: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#86198F',
   },
 });

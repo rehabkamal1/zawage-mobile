@@ -34,7 +34,7 @@ export default function ContactScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topInfo}>
           <View style={styles.iconCircle}>
-            <Ionicons name="headset-outline" size={36} color="#E91E63" />
+            <Ionicons name="headset" size={36} color="#E91E63" />
           </View>
           <Text style={styles.mainTitle}>نحن هنا دائماً لخدمتك</Text>
           <Text style={styles.mainSubtitle}>
@@ -58,7 +58,7 @@ export default function ContactScreen({ navigation }) {
         {/* Phone Card */}
         <TouchableOpacity style={styles.contactCard} onPress={callPhone} activeOpacity={0.88}>
           <View style={[styles.cardIconBox, { backgroundColor: '#EFF6FF' }]}>
-            <Ionicons name="call-outline" size={26} color="#0284C7" />
+            <Ionicons name="call" size={26} color="#0284C7" />
           </View>
           <View style={styles.cardDetails}>
             <Text style={styles.cardTitle}>الاتصال الهاتفي المباشر</Text>

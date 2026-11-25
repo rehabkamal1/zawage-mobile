@@ -42,7 +42,7 @@ export default function MoreScreen({ navigation }) {
     {
       id: 'profile',
       title: 'ملفي الشخصي وبياناتي',
-      icon: 'person-outline',
+      icon: 'person',
       color: '#E91E63',
       bgColor: '#FFF0F5',
       onPress: () => navigation.navigate('ProfileScreen'),
@@ -50,7 +50,7 @@ export default function MoreScreen({ navigation }) {
     {
       id: 'settings',
       title: 'إعدادات الحساب وكلمة المرور',
-      icon: 'settings-outline',
+      icon: 'settings',
       color: '#6366F1',
       bgColor: '#EEF2FF',
       onPress: () => navigation.navigate('Settings'),
@@ -58,7 +58,7 @@ export default function MoreScreen({ navigation }) {
     {
       id: 'notifications',
       title: 'التنبيهات والرسائل',
-      icon: 'notifications-outline',
+      icon: 'notifications',
       color: '#F59E0B',
       bgColor: '#FFFBEB',
       onPress: () => navigation.navigate('Notifications'),
@@ -69,7 +69,7 @@ export default function MoreScreen({ navigation }) {
           {
             id: 'subscriptions',
             title: 'باقات الاشتراك والتجديد (فودافون كاش)',
-            icon: 'card-outline',
+            icon: 'card',
             color: '#8B5CF6',
             bgColor: '#F5F3FF',
             onPress: () => navigation.navigate('SubscriptionsTab'),
@@ -79,7 +79,7 @@ export default function MoreScreen({ navigation }) {
     {
       id: 'form',
       title: 'استمارة الزواج الشرعي (تعديل)',
-      icon: 'document-text-outline',
+      icon: 'document-text',
       color: '#0284C7',
       bgColor: '#F0F9FF',
       onPress: () => navigation.navigate('EditProfileTab'),
@@ -90,7 +90,7 @@ export default function MoreScreen({ navigation }) {
           {
             id: 'favorites',
             title: 'قائمة الشركاء المفضلة',
-            icon: 'heart-outline',
+            icon: 'heart',
             color: '#E11D48',
             bgColor: '#FFF1F2',
             onPress: () => navigation.navigate('FavoritesTab'),
@@ -100,7 +100,7 @@ export default function MoreScreen({ navigation }) {
     {
       id: 'contact',
       title: 'اتصل بنا والدعم الفني عبر واتساب',
-      icon: 'headset-outline',
+      icon: 'headset',
       color: '#059669',
       bgColor: '#ECFDF5',
       onPress: () => navigation.navigate('Contact'),
@@ -108,7 +108,7 @@ export default function MoreScreen({ navigation }) {
     {
       id: 'terms',
       title: 'الشروط والأحكام والضوابط الشرعية',
-      icon: 'shield-checkmark-outline',
+      icon: 'shield-checkmark',
       color: '#10B981',
       bgColor: '#ECFDF5',
       onPress: () => navigation.navigate('Terms'),
@@ -116,7 +116,7 @@ export default function MoreScreen({ navigation }) {
     {
       id: 'privacy',
       title: 'سياسة الخصوصية وحماية البيانات',
-      icon: 'lock-closed-outline',
+      icon: 'lock-closed',
       color: '#F59E0B',
       bgColor: '#FFFBEB',
       onPress: () => navigation.navigate('Privacy'),
@@ -124,7 +124,7 @@ export default function MoreScreen({ navigation }) {
     {
       id: 'about',
       title: 'عن منصة نصفي الآخر',
-      icon: 'information-circle-outline',
+      icon: 'information-circle',
       color: '#0284C7',
       bgColor: '#EFF6FF',
       onPress: () => navigation.navigate('About'),
@@ -202,7 +202,7 @@ export default function MoreScreen({ navigation }) {
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.85}>
-          <Ionicons name="log-out-outline" size={20} color="#E11D48" style={{ marginLeft: 8 }} />
+          <Ionicons name="log-out" size={20} color="#E11D48" style={{ marginLeft: 8 }} />
           <Text style={styles.logoutText}>تسجيل الخروج</Text>
         </TouchableOpacity>
 

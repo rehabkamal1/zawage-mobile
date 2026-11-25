@@ -2,13 +2,14 @@
   "expo": {
     "name": "نصفي الآخر",
     "slug": "nosfy-alakhar",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "backgroundColor": "#FFFFFF",
-      "resizeMode": "contain"
+      "image": "./assets/logo1.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": true,
@@ -16,7 +17,7 @@
     },
     "android": {
       "package": "com.nosfialakhar.app",
-      "versionCode": 7,
+      "versionCode": 8,
       "permissions": [
         "INTERNET"
       ],

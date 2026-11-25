@@ -484,14 +484,14 @@ export default function EditProfileScreen({ navigation }) {
             }}
             activeOpacity={0.88}
           >
-            <Ionicons name="create-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
+            <Ionicons name="create" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
             <Text style={styles.editCtaText}>تعديل بيانات الاستمارة ✏️</Text>
           </TouchableOpacity>
 
           {/* Section 1: Basic Info */}
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
-              <Ionicons name="person-circle-outline" size={22} color="#E91E63" />
+              <Ionicons name="person-circle" size={22} color="#E91E63" />
               <Text style={styles.cardSectionTitle}>البيانات الشخصية والأساسية</Text>
             </View>
 
@@ -520,7 +520,7 @@ export default function EditProfileScreen({ navigation }) {
           {/* Section 2: Religious & Location */}
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
-              <Ionicons name="home-outline" size={22} color="#8B5CF6" />
+              <Ionicons name="home" size={22} color="#8B5CF6" />
               <Text style={styles.cardSectionTitle}>السكن والالتزام والأسرة</Text>
             </View>
 
@@ -546,7 +546,7 @@ export default function EditProfileScreen({ navigation }) {
           {/* Section 3: Partner Specs */}
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
-              <Ionicons name="heart-circle-outline" size={22} color="#0284C7" />
+              <Ionicons name="heart-circle" size={22} color="#0284C7" />
               <Text style={styles.cardSectionTitle}>المواصفات المطلوبة في الشريك</Text>
             </View>
 
@@ -1066,7 +1066,7 @@ export default function EditProfileScreen({ navigation }) {
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <>
-                  <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                  <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" style={{ marginLeft: 6 }} />
                   <Text style={styles.submitFinalBtnText}>حفظ وتأكيد الاستمارة الآن ✅</Text>
                 </>
               )}
@@ -1078,7 +1078,7 @@ export default function EditProfileScreen({ navigation }) {
         <View style={styles.wizardControls}>
           {step < 4 ? (
             <TouchableOpacity style={styles.nextBtn} onPress={handleNextStep}>
-              <Ionicons name="arrow-back-outline" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
+              <Ionicons name="arrow-back" size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
               <Text style={styles.nextBtnText}>الخطوة التالية</Text>
             </TouchableOpacity>
           ) : null}
@@ -1086,7 +1086,7 @@ export default function EditProfileScreen({ navigation }) {
           {step > 1 ? (
             <TouchableOpacity style={styles.prevBtn} onPress={handlePrevStep}>
               <Text style={styles.prevBtnText}>السابق</Text>
-              <Ionicons name="arrow-forward-outline" size={18} color="#64748B" style={{ marginRight: 6 }} />
+              <Ionicons name="arrow-forward" size={18} color="#64748B" style={{ marginRight: 6 }} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -1103,7 +1103,7 @@ export default function EditProfileScreen({ navigation }) {
           <View style={styles.pickerCard}>
             <View style={styles.pickerHeader}>
               <TouchableOpacity onPress={() => setPickerVisible(false)}>
-                <Ionicons name="close-circle-outline" size={26} color="#8B94B7" />
+                <Ionicons name="close-circle" size={26} color="#8B94B7" />
               </TouchableOpacity>
               <Text style={styles.pickerTitle}>{pickerConfig.title}</Text>
             </View>

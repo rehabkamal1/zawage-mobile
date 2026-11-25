@@ -174,7 +174,7 @@ export default function AdminPaymentsScreen({ navigation }) {
             style={styles.viewReceiptBtn}
             onPress={() => setPreviewImage(fullImageUrl)}
           >
-            <Ionicons name="image-outline" size={18} color="#0284C7" />
+            <Ionicons name="image" size={18} color="#0284C7" />
             <Text style={styles.viewReceiptText}>معاينة صورة الإيصال المرفق</Text>
           </TouchableOpacity>
         ) : (
@@ -263,7 +263,7 @@ export default function AdminPaymentsScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Ionicons name="receipt-outline" size={48} color="#CBD5E1" />
+              <Ionicons name="receipt" size={48} color="#CBD5E1" />
               <Text style={styles.emptyText}>لا توجد أي إيصالات في هذه الحالة.</Text>
             </View>
           }

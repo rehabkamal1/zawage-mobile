@@ -76,7 +76,7 @@ export default function AdminSettingsScreen({ navigation }) {
             </Text>
 
             <View style={styles.inputWrapper}>
-              <Ionicons name="call-outline" size={20} color="#8B94B7" style={{ marginLeft: 8 }} />
+              <Ionicons name="call" size={20} color="#8B94B7" style={{ marginLeft: 8 }} />
               <TextInput
                 style={styles.input}
                 placeholder="رقم الهاتف (مثال: 01012345678)"
@@ -97,7 +97,7 @@ export default function AdminSettingsScreen({ navigation }) {
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <>
-                  <Ionicons name="arrow-up-circle-outline" size={19} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                  <Ionicons name="arrow-up-circle" size={19} color="#FFFFFF" style={{ marginLeft: 6 }} />
                   <Text style={styles.promoteBtnText}>ترقية الحساب الآن</Text>
                 </>
               )}
@@ -129,7 +129,7 @@ export default function AdminSettingsScreen({ navigation }) {
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutBtn} onPress={logout} activeOpacity={0.88}>
-          <Ionicons name="log-out-outline" size={20} color="#E11D48" style={{ marginLeft: 6 }} />
+          <Ionicons name="log-out" size={20} color="#E11D48" style={{ marginLeft: 6 }} />
           <Text style={styles.logoutBtnText}>تسجيل الخروج من لوحة الإدارة</Text>
         </TouchableOpacity>
       </ScrollView>

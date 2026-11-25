@@ -63,7 +63,7 @@ export default function OtpScreen({ route, navigation }) {
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.iconCircle}>
-          <Ionicons name="mail-unread-outline" size={40} color={COLORS.primary} />
+          <Ionicons name="mail-unread" size={40} color={COLORS.primary} />
         </View>
 
         <Text style={styles.title}>تأكيد الحساب (OTP)</Text>

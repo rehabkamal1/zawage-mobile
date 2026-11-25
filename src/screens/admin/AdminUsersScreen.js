@@ -186,12 +186,12 @@ export default function AdminUsersScreen({ navigation }) {
         </View>
 
         <View style={styles.infoRow}>
-          <Ionicons name="call-outline" size={15} color="#8B94B7" />
+          <Ionicons name="call" size={15} color="#8B94B7" />
           <Text style={styles.infoText}>{item.phone || 'بدون هاتف'}</Text>
         </View>
         {item.email && (
           <View style={styles.infoRow}>
-            <Ionicons name="mail-outline" size={15} color="#8B94B7" />
+            <Ionicons name="mail" size={15} color="#8B94B7" />
             <Text style={styles.infoText}>{item.email}</Text>
           </View>
         )}
@@ -212,7 +212,7 @@ export default function AdminUsersScreen({ navigation }) {
               style={[styles.actionBtn, isBanned ? styles.actionBtnUnban : styles.actionBtnBan]}
               onPress={() => handleToggleBan(item)}
             >
-              <Ionicons name={isBanned ? 'checkmark-circle-outline' : 'ban-outline'} size={15} color="#FFFFFF" />
+              <Ionicons name={isBanned ? 'checkmark-circle' : 'ban'} size={15} color="#FFFFFF" />
               <Text style={styles.actionBtnText}>{isBanned ? 'فك الحظر' : 'حظر الحساب'}</Text>
             </TouchableOpacity>
 
@@ -229,7 +229,7 @@ export default function AdminUsersScreen({ navigation }) {
                 onPress={() => handleChangeGender(item)}
               >
                 <Ionicons
-                  name={item.gender === 'male' ? 'woman-outline' : 'man-outline'}
+                  name={item.gender === 'male' ? 'woman' : 'man'}
                   size={15}
                   color={item.gender === 'male' ? '#DB2777' : '#0284C7'}
                 />
@@ -254,7 +254,7 @@ export default function AdminUsersScreen({ navigation }) {
                   setShowRoleModal(true);
                 }}
               >
-                <Ionicons name="shield-outline" size={15} color="#2D1B4D" />
+                <Ionicons name="shield" size={15} color="#2D1B4D" />
                 <Text style={[styles.actionBtnText, { color: '#2D1B4D' }]}>تغيير الصلاحية</Text>
               </TouchableOpacity>
             )}
@@ -263,7 +263,7 @@ export default function AdminUsersScreen({ navigation }) {
               style={[styles.actionBtn, styles.actionBtnDelete]}
               onPress={() => handleDeleteUser(item)}
             >
-              <Ionicons name="trash-outline" size={15} color="#E11D48" />
+              <Ionicons name="trash" size={15} color="#E11D48" />
               <Text style={[styles.actionBtnText, { color: '#E11D48' }]}>حذف نهائي</Text>
             </TouchableOpacity>
           </View>
@@ -366,7 +366,7 @@ export default function AdminUsersScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Ionicons name="people-outline" size={48} color="#CBD5E1" />
+              <Ionicons name="people" size={48} color="#CBD5E1" />
               <Text style={styles.emptyText}>لم يتم العثور على أي أعضاء مطابقين للبحث.</Text>
             </View>
           }
